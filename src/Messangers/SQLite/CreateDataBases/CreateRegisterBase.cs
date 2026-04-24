@@ -8,15 +8,14 @@ namespace Messangers.SQLite.CreateDataBases
 {
     public class CreateRegisterBase
     {
-        private bool? _isCheckedCreate;
+        private bool? _isCheckedCreate = false;
         private readonly ILogger<CreateRegisterBase> _logger;
         private readonly PoolSQLite _poolSQLiteConnection;
         private readonly SQLiteExceptionDelegate _sQLiteExceptionDelegate;
         private readonly ExceptionDelegate _exceptionDelegate;
 
-        public CreateRegisterBase(bool? isCheckedCreate, ILogger<CreateRegisterBase> logger, PoolSQLite poolSQLiteConnection, SQLiteExceptionDelegate sQLiteExceptionDelegate, ExceptionDelegate exceptionDelegate)
+        public CreateRegisterBase(ILogger<CreateRegisterBase> logger, PoolSQLite poolSQLiteConnection, SQLiteExceptionDelegate sQLiteExceptionDelegate, ExceptionDelegate exceptionDelegate)
         {
-            _isCheckedCreate = isCheckedCreate;
             _logger = logger;
             _poolSQLiteConnection = poolSQLiteConnection;
             _sQLiteExceptionDelegate = sQLiteExceptionDelegate;
@@ -25,11 +24,12 @@ namespace Messangers.SQLite.CreateDataBases
 
         public async Task pROVERKA()
         {
+            _logger.LogWarning($"pROVERKA вызван. _isCheckedCreate = {_isCheckedCreate}");  
             if (_isCheckedCreate == true) return;
 
             if (_isCheckedCreate == false)
-            { 
-                
+            {
+                await CreateRegisterBases();
             }
 
             _isCheckedCreate = true;
@@ -46,23 +46,13 @@ namespace Messangers.SQLite.CreateDataBases
                     "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
                     "Login TEXT NOT NULL," +
                     "Password TEXT NOT NULL," +
-                    "DateRegistrftion, TEXT NOT NULL)";
+                    "DateRegistration TEXT NOT NULL)";
                 await using (var sqlicommand = new SQLiteCommand(command, connection))
                 { 
-                    var result = await sqlicommand.ExecuteScalarAsync().ConfigureAwait(false);
+                     await sqlicommand.ExecuteNonQueryAsync().ConfigureAwait(false);
 
-                    bool exec = Convert.ToInt32(result) == 1;
-
-                    if (exec)
-                    {
-                        _logger.LogInformation($"База RegisterBase загружена!");
-                        return true;
-                    }
-                    else
-                    {
-                        _logger.LogInformation($"Ошибка заргузки базы RegisterBase");
-                        return false;
-                    }
+                     _logger.LogInformation($"База RegisterBase загружена!");
+                     return true;
                 }
             }
             catch (SQLiteException ex)

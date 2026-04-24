@@ -14,11 +14,11 @@ namespace Messangers.SQLite.PoolSQLiteConnection
         private readonly object _lock = new object();
         private readonly string _dbpath;
         private readonly int _maxCouhnt = 10;
-        private readonly ILogger _loggr;
+        private readonly ILogger<PoolSQLite> _loggr;
         private readonly ExceptionDelegate _exceptionDelegate;
         private readonly SQLiteExceptionDelegate _sQLiteExceptionDelegate;
 
-        public PoolSQLite(ILogger loggr, ExceptionDelegate exceptionDelegate, SQLiteExceptionDelegate sQLiteExceptionDelegate)
+        public PoolSQLite(ILogger<PoolSQLite> loggr, ExceptionDelegate exceptionDelegate, SQLiteExceptionDelegate sQLiteExceptionDelegate)
         {
             DbPathClass dbpath = new DbPathClass();
             _dbpath = dbpath.dbpath();

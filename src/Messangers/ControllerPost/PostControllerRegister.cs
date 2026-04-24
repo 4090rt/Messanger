@@ -1,6 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using MessangersUI.Delegate;
+﻿using Messangers.Delegate;
 using Messangers.ModelData;
+using Messangers.SQLite.PoolSQLiteConnection;
+using Messangers.SQLite.RequestRegisterAndLogin;
+using Messangers.SQLite.UserLoginCheck;
+using MessangersUI.Delegate;
+using Microsoft.AspNetCore.Mvc;
 namespace Messangers.ControllerPost
 {
     [ApiController]
@@ -8,10 +12,22 @@ namespace Messangers.ControllerPost
     public class PostControllerRegister: ControllerBase
     {
         public ILogger<PostControllerRegister> _logger;
+        public SaveRequestInBdRegister _saveRequestInBdRegister;
+        private readonly PoolSQLite _poolSQLiteConnection;
+        private readonly SQLiteExceptionDelegate _sQLiteExceptionDelegate;
+        private readonly ExceptionDelegate _exceptionDelegate;
+        private readonly CheckLogin _checkLogin;
 
-        public PostControllerRegister(ILogger<PostControllerRegister> logger)
+        public PostControllerRegister(ILogger<PostControllerRegister> logger, SaveRequestInBdRegister saveRequestInBdRegister,
+            PoolSQLite poolSQLiteConnection, SQLiteExceptionDelegate sQLiteExceptionDelegate,
+            ExceptionDelegate exceptionDelegate, CheckLogin checkLogin)
         {
             _logger = logger;
+            _saveRequestInBdRegister = saveRequestInBdRegister;
+            _poolSQLiteConnection = poolSQLiteConnection;
+            _exceptionDelegate = exceptionDelegate;
+            _poolSQLiteConnection = poolSQLiteConnection;
+            _checkLogin = checkLogin;
         }
 
         [HttpPost("register")]
@@ -25,11 +41,17 @@ namespace Messangers.ControllerPost
             if (string.IsNullOrEmpty(model.Password))
                 return BadRequest(new { error = "Пароль обязателен!" });
 
-            // запрос к  бд существует ли пользователь с таким ником
+            var result = await  _checkLogin.RequestForLogin(model.Login);
+            if (result == false)
+            {
+                return BadRequest(new { error = "Пользователь уже зарегестрирован!" });
+            }
+            
 
-            //запрос сохранения в базу данных
+            await _saveRequestInBdRegister.SaveRegisterDataInBd(model);
 
-            _logger?.LogWarning("Зарегестрирован");
+
+            _logger?.LogWarning($"Зарегестрирован {model.Login}");
             return Ok(new {message = "Регистрация успешна", username = model.Login});
         }
     }

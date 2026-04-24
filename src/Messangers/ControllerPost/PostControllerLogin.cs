@@ -1,4 +1,5 @@
 ﻿using Messangers.ModelData;
+using Messangers.SQLite.UserLoginCheck;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -10,30 +11,42 @@ namespace Messangers.ControllerPost
     {
         public ILogger<PostControllerLogin> _logger;
         public ExceptionDelegate _exceptionDelegate;
-        public TaskCanccelException _canccelException;
+        public CheckUserInBD _checkuser;
+        public CheckHashPasswordFromBD _checkhashPassword;
 
-        public PostControllerLogin (ILogger<PostControllerLogin> logger, ExceptionDelegate exceptionDelegate, TaskCanccelException canccelException)
+        public PostControllerLogin (ILogger<PostControllerLogin> logger, ExceptionDelegate exceptionDelegate,
+            CheckUserInBD checkUserInBD, CheckHashPasswordFromBD checkhashPassword)
         {
             _logger = logger;
             _exceptionDelegate = exceptionDelegate;
-            _canccelException = canccelException;
+            _checkuser = checkUserInBD;
+            _checkhashPassword = checkhashPassword;
         }
-        [HttpPost("register")]
-        public async Task<IActionResult> Register([FromBody] ModelDataLogin request)
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] ModelDataLogin request)
         {
-            if (request != null)
+            Console.WriteLine("Авторизация пользователя", request.Login);
+            if (request == null)
                 return BadRequest(new {error =  "Данные не переданы" });
             if (string.IsNullOrEmpty(request.Login))
                 return BadRequest(new {error = "Логин обязателен!" });
             if (string.IsNullOrEmpty(request.Password))
                 return BadRequest(new { error = "Пароль обязателен обязателен!" });
 
-            //Поиск юзера в бд не нашли = null
+            var result = await _checkuser.RequestLogin(request.Login);
+            if (result == false)
+            {
+                return BadRequest(new { error = "Пользователь не зарегестрирован" });
+            }
 
-            //кэширование пароля что передали и сравнение с тем что в бд
+            var resultcachepas = await _checkhashPassword.PasswordCheckRequest(request.Login, request.Password);
+            if (resultcachepas == false)
+            {
+                return BadRequest(new { error = "Неверный пароль"});
+            }
 
             //генерация jwt токена
-            _logger.LogWarning("Зарегестрирован");
+            _logger.LogWarning("Авторизирован");
             return Ok(new {/*token = "",*/ username = request.Login});
 
         }
