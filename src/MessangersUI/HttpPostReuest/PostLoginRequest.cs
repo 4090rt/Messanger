@@ -38,16 +38,28 @@ namespace MessangersUI.HttpPostReuest
             {
                 var client = _httpClientFactory.CreateClient("Client1Http2.0");
 
-                var options = new HttpRequestMessage(HttpMethod.Post, "")
+                var options = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7167/api/PostControllerLogin/login")
                 {
                     Version = HttpVersion.Version20,
                     VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
                 };
 
+                var logindata = list.FirstOrDefault();
+                if (logindata == null)
+                {
+                    return (false, "Нет данных для отправки");
+                }
+
+                var loglist = new
+                {
+                    login = logindata.Login,
+                    password = logindata.Password
+                };
+
                 byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(list);
                 string tobase64 = Convert.ToBase64String(bytes);
 
-                var json = JsonSerializer.Serialize(tobase64, new JsonSerializerOptions
+                var json = JsonSerializer.Serialize(loglist, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
@@ -60,12 +72,14 @@ namespace MessangersUI.HttpPostReuest
 
                 if (recpon.IsSuccessStatusCode)
                 {
+                    System.Windows.MessageBox.Show("Успешно отправлено");
                     _logger.LogInformation("Успешно отправлено");
                     return (true, "");
                 }
                 else
                 {
                     string errorBody = await recpon.Content.ReadAsStringAsync();
+                    System.Windows.MessageBox.Show($"❌ Ошибка {recpon.StatusCode}: {errorBody}");
                     _logger.LogError($"❌ Ошибка {recpon.StatusCode}: {errorBody}");
                     return (false, errorBody);
                 }

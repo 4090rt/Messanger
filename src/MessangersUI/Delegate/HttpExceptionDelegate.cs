@@ -20,7 +20,7 @@ namespace MessangersUI.Delegate
 
         public async Task Delegate(HttpRequestException ex)
         {
-            MessageBox.Show("Возникло необработанное HTTP исключение " + ex.Message, "место: " + ex.StackTrace + ex.InnerException);
+            System.Windows.MessageBox.Show("Возникло необработанное HTTP исключение " + ex.Message, "место: " + ex.StackTrace + ex.InnerException);
         }
     }
 }

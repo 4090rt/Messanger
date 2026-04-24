@@ -20,7 +20,7 @@ namespace MessangersUI.Delegate
 
         public async Task Delegate(JsonException ex)
         {
-            MessageBox.Show("Возникло необработанное JSON исключение " + ex.Message, "место: " + ex.StackTrace + ex.InnerException);
+            System.Windows.MessageBox.Show("Возникло необработанное JSON исключение " + ex.Message, "место: " + ex.StackTrace + ex.InnerException);
         }
     }
 }

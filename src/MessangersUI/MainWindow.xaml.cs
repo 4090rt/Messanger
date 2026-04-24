@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using MessangersUI.Notifications;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Polly;
 using System.Net.Http;
@@ -20,17 +21,19 @@ namespace MessangersUI
     {
         public CancellationTokenSource _cancellationSource;
         public CancellationToken _token;
+        public FabricNotification _fabricNotification;
         public MainWindow()
         {
             InitializeComponent();
             _cancellationSource = new CancellationTokenSource();
             _token = _cancellationSource.Token;
+            _fabricNotification = new FabricNotification();
             gg();
+
         }
         private HubConnection? _connection;
         public async void gg()
         {
-            MessageBox.Show("Настройка");
             var hubUrl = "https://localhost:7167/chatHub";
 
             if (_connection == null)
@@ -50,7 +53,7 @@ namespace MessangersUI
                     TimeSpan.FromMilliseconds(Random.Shared.Next(0,100))
                     ,onRetry: (outcome, delay, retrycouny, context) =>
                     {
-                        Console.WriteLine($"Connection failed, retrying in {delay}... Attempt: {retrycouny}");
+                        System.Windows.MessageBox.Show($"Connection failed, retrying in {delay}... Attempt: {retrycouny}");
                     });
 
                 try
@@ -59,91 +62,106 @@ namespace MessangersUI
                     {
                         await retrypolicy.ExecuteAsync(async () =>
                         {
-                            if (_connection.State != HubConnectionState.Disconnected || _connection.State != HubConnectionState.Reconnecting)
+                            if (_connection.State != HubConnectionState.Connected &&
+                             _connection.State != HubConnectionState.Connecting)
                             {
                                 await _connection.StartAsync(_token);
-                                MessageBox.Show("Подключено к чату!");
+                                var not = _fabricNotification.Method(NotificationsName.Connect);
+                                not.Notify();
                             }
                         });
                     }
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка подключения: {ex.Message} {ex.InnerException}");
+                    System.Windows.MessageBox.Show($"Ошибка подключения: {ex.Message} {ex.InnerException}");
                     return;
                 }
-            }
-            else
-            {
-                MessageBox.Show("Вы уже подключены!");
             }
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
-        {
-
+        {   
             if (_connection == null)
             {
-                MessageBox.Show("_connection == null");
+                System.Windows.MessageBox.Show("_connection == null");
                 return;
             }
 
-            MessageBox.Show($"Состояние соединения: {_connection.State}");
-
             var userName = TextName.Text;
             var message = TextMessage.Text;
-
+    
 
             if (string.IsNullOrEmpty(message))
             {
-                MessageBox.Show("Сообщение пустое");
-                return;          
+                var not = _fabricNotification.Method(NotificationsName.SendCancelNull);
+                not.Notify();
+                return;
             }
 
             if (_connection.State == HubConnectionState.Connected)
             {
+        
+                _cancellationSource = new CancellationTokenSource();
+                _token = _cancellationSource.Token;
+        
+
                 var retrtpolitic = Policy
-                    .Handle<Exception>()
+                    .Handle<Exception>(ex => ex is not OperationCanceledException)
                     .Or<HttpRequestException>()
-                    .Or<TaskCanceledException>()
                     .WaitAndRetryAsync(3, retrycount =>
-                    TimeSpan.FromSeconds(Math.Pow(2, retrycount)) +
-                    TimeSpan.FromMilliseconds(Random.Shared.Next()),
-                    onRetry:  (outcome, delay, retrycount, context)=>
-                    {
-                        Console.WriteLine($"Send Message failed, retrying in {delay}... Attempt: {retrycount}");
-                    });
+                        TimeSpan.FromSeconds(Math.Pow(2, retrycount)) +
+                        TimeSpan.FromMilliseconds(Random.Shared.Next()),
+                        onRetry: (outcome, delay, retrycount, context) =>
+                        {
+                            System.Windows.MessageBox.Show($"Send Message failed, retrying in {delay}... Attempt: {retrycount}\nОшибка");
+                        });
+
                 try
                 {
+
                     await Task.Delay(3000);
+
                     await retrtpolitic.ExecuteAsync(async () =>
                     {
-                        if (!_cancellationSource.IsCancellationRequested)
+                
+                        if (_cancellationSource?.IsCancellationRequested == true)
                         {
-                            await _connection.InvokeAsync("SendMessage", userName, message);
-                            MessageBox.Show("Сообщение отправлено!");
+                            throw new OperationCanceledException();
                         }
-                        else
-                        {
-                            MessageBox.Show("Операция отменена");
-                            return;
-                        }
+                
+                        await _connection.InvokeAsync("SendMessage", userName, message);
+                
+                        var not = _fabricNotification.Method(NotificationsName.Send);
+                        not.Notify();
                     });
+          
+                }
+                catch (OperationCanceledException)
+                {
+                    var not = _fabricNotification.Method(NotificationsName.SendCancel);
+                    not.Notify();
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show($"Ошибка: {ex.Message}");
+                    System.Windows.MessageBox.Show($"Поймано исключение: {ex.GetType().Name} - {ex.Message}");
+                }
+                finally
+                {
+                    System.Windows.MessageBox.Show("Очистка ресурсов");
+                    _cancellationSource?.Dispose();
+                    _cancellationSource = null;
                 }
             }
             else
             {
-                MessageBox.Show($"ошибка подключения. Состояние: {_connection.State}");
+                System.Windows.MessageBox.Show($"ошибка подключения. Состояние: {_connection.State}");
             }
         }
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            _cancellationSource.Cancel();
+            _cancellationSource?.Cancel();
 
         }
     }

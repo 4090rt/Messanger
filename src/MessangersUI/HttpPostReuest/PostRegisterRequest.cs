@@ -9,6 +9,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows.Threading;
 
 namespace MessangersUI.HttpPostReuest
 {
@@ -75,7 +76,14 @@ namespace MessangersUI.HttpPostReuest
                 else
                 {
                     string errorBody = await recpon.Content.ReadAsStringAsync();
-                    _logger.LogError($"❌ Ошибка {recpon.StatusCode}: {errorBody}");
+
+                    _logger.LogError($"❌ Статус: {recpon.StatusCode}");
+                    _logger.LogError($"❌ Тело ошибки: {errorBody}");
+                    _logger.LogError($"❌ Заголовки: {string.Join(", ", recpon.Headers.Select(h => $"{h.Key}: {string.Join(",", h.Value)}"))}");
+
+                   
+                        System.Windows.MessageBox.Show($"Ошибка {recpon.StatusCode}: {errorBody}");
+
                     return (false, errorBody);
                 }
 

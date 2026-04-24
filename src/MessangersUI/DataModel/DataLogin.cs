@@ -8,7 +8,7 @@ namespace MessangersUI.DataModel
 {
     public class DataLogin
     {
-        string Login { get; set; }
-        string cachePassword { get; set; }
+        public string Login { get; set; }
+        public string Password { get; set; }
     }
 }

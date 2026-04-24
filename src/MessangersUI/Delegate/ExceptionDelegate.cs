@@ -18,7 +18,7 @@ namespace MessangersUI.Delegate
 
         public async Task DelegateException(Exception ex)
         {
-            MessageBox.Show("Возникло необработанное исключение " + ex.Message, "место: " + ex.StackTrace +ex.InnerException);
+            System.Windows.MessageBox.Show("Возникло необработанное исключение " + ex.Message, "место: " + ex.StackTrace +ex.InnerException);
         }
     }
 }

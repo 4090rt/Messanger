@@ -18,7 +18,7 @@ namespace MessangersUI.Delegate
 
         public async Task Delegate(TaskCanceledException ex)
         {
-            MessageBox.Show("Операция отменена ");
+            System.Windows.MessageBox.Show("Операция отменена ");
         }
     }
 }

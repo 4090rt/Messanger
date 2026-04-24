@@ -3,6 +3,7 @@ using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
 using MessangersUI.HttpPostReuest;
 using MessangersUI.HTTPSetthings;
+using MessangersUI.Notifications;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
@@ -34,13 +35,15 @@ namespace MessangersUI
         public ILogger<PasswordhASH> _passwordpash;
         public CancellationTokenSource _source;
         public CancellationToken _CancellationToken;
-        public MainWindow _MainWindow;
+        public LoginPage _LoginPage;
         private readonly ILogger<PostRegisterRequest> _loggerpass;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly HttpExceptionDelegate _httpExceptionDelegate;
         private readonly JsonExceptionDelegate _jsonExceptionDelegate;
         private readonly TaskCanccelException _taskCanccelException;
         private readonly IServiceCollection _serviceDescriptors;
+        private readonly FabricNotification _fabricNotification;
+        public RegistrPage _registr;
 
         string Login = "";
         string Password = "";
@@ -57,6 +60,7 @@ namespace MessangersUI
             _httpExceptionDelegate = new HttpExceptionDelegate();
             _jsonExceptionDelegate = new JsonExceptionDelegate();
             _taskCanccelException = new TaskCanccelException();
+            _fabricNotification = new FabricNotification();
 
             var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             _logger = loggerFactory.CreateLogger<RegistrPage>();
@@ -75,9 +79,6 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException
             );
-
-            _MainWindow = new MainWindow();
-
         }
 
         public async Task<List<DataRegistr>> RegisterMethod()
@@ -86,53 +87,77 @@ namespace MessangersUI
             {
                 Login = TextLogin.Text;
                 Password = TextPassword.Text;
-                RepeatPassword  = TextPasswordRepeat.Text;
+                RepeatPassword = TextPasswordRepeat.Text;
                 List<DataRegistr> datalist = new List<DataRegistr>();
 
-                if (Login.Length > 5 && Password.Length > 8 && RepeatPassword.Length > 8)
+                if (Login.Length > 3 && Password.Length > 8 && RepeatPassword.Length > 8)
                 {
                     if (Password == RepeatPassword)
                     {
-                        if (!_CancellationToken.IsCancellationRequested)
-                        {
-                            PasswordhASH passwordhASH = new PasswordhASH(_passwordpash, _exceptionDelegate);
-                            string CachedPassword = await passwordhASH.Hash(Password);
+                        _source = new CancellationTokenSource();
+                        _CancellationToken = _source.Token;
 
-                            var result = new DataRegistr()
-                            {
-                                Login = Login,
-                                cachePassword = CachedPassword,
-                                date = DateTime.Now
-                            };
-                            datalist.Add(result);
-                            await Dispatcher.InvokeAsync(() => MessageBox.Show("Регистрирую.."));
-                            await Task.Delay(4000);                           
-                            await _PostRegisterRequest.RequestMETHOD(datalist, _CancellationToken).ConfigureAwait(false);
-                            await Dispatcher.InvokeAsync(() => MessageBox.Show("Успешно!"));
+                        PasswordhASH passwordhASH = new PasswordhASH(_passwordpash, _exceptionDelegate);
+                        string CachedPassword = await passwordhASH.Hash(Password);
+
+                        var result = new DataRegistr()
+                        {
+                            Login = Login,
+                            cachePassword = CachedPassword,
+                            date = DateTime.Now
+                        };
+
+
+                        if (_source?.IsCancellationRequested == true)
+                        {
+                            throw new OperationCanceledException();
+                        }
+
+                        datalist.Add(result);
+                        await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Регистрирую.."));
+                        await Task.Delay(4000, _CancellationToken);
+                        var resultat = await _PostRegisterRequest.RequestMETHOD(datalist, _CancellationToken).ConfigureAwait(false);
+
+                        if (resultat.succes == true)
+                        {
+                            await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Успешно!"));
+                            NavigationService?.Navigate(new LoginPage());
+                        }
+                        else
+                        {
                             await Dispatcher.InvokeAsync(() =>
                             {
-                                _MainWindow.Show();
-                                Window windowToClose = (Window)this.Parent;
-                                windowToClose?.Close();
+                                System.Windows.MessageBox.Show($"Взникла ошибка, {resultat.ErrorMessage}");
                             });
                         }
                     }
                     else
                     {
-                        await Dispatcher.InvokeAsync(() => MessageBox.Show("Пароли не совпадают"));
+                        await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Пароли не совпадают"));
                     }
                     return datalist;
                 }
                 else
                 {
-                    await Dispatcher.InvokeAsync(() => MessageBox.Show("Не удлаось отправить данные!"));
+                    await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Не удлаось отправить данные!"));
                     return new List<DataRegistr>();
                 }
             }
-            catch(Exception ex)
+            catch (OperationCanceledException ex)
             {
-                await Dispatcher.InvokeAsync(() => MessageBox.Show($"Ошибка: {ex.Message}"));
+                var not = _fabricNotification.Method(NotificationsName.SendCancel);
+                not.Notify();
                 return new List<DataRegistr>();
+            }
+            catch (Exception ex)
+            {
+                await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show($"Ошибка: {ex.Message}"));
+                return new List<DataRegistr>();
+            }
+            finally
+            {
+                _source.Dispose();
+                _source = null;
             }
         }
 
@@ -144,7 +169,13 @@ namespace MessangersUI
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
             _source.Cancel();
-            MessageBox.Show($"Операция отменена");
+            System.Windows.MessageBox.Show($"Операция отменена");
+        }
+
+        private void Button_Click_2(object sender, RoutedEventArgs e)
+        {
+            // Простой переход на LoginPage
+            NavigationService?.Navigate(new LoginPage());
         }
     }
 }
