@@ -1,4 +1,4 @@
-﻿using MessangersUI.DataModel;
+using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using Microsoft.Extensions.Logging;
 using System;
@@ -32,7 +32,7 @@ namespace MessangersUI.HttpPostReuest
             _taskCanccelException = taskCanccelException;
         }
 
-        public async Task<(bool Succes, string errormesseage)> Request(List<DataLogin> list)
+        public async Task<(bool Succes, string errormesseage, string token, string username)> Request(List<DataLogin> list)
         {
             try
             {
@@ -47,7 +47,7 @@ namespace MessangersUI.HttpPostReuest
                 var logindata = list.FirstOrDefault();
                 if (logindata == null)
                 {
-                    return (false, "Нет данных для отправки");
+                    return (false, "Нет данных для отправки", "", "");
                 }
 
                 var loglist = new
@@ -72,37 +72,49 @@ namespace MessangersUI.HttpPostReuest
 
                 if (recpon.IsSuccessStatusCode)
                 {
-                    System.Windows.MessageBox.Show("Успешно отправлено");
-                    _logger.LogInformation("Успешно отправлено");
-                    return (true, "");
+                    MessageBox.Show("Успешно отправлено");
+                    var responcontent = await recpon.Content.ReadAsStringAsync();
+                    if (responcontent != null)
+                    {
+                        using var doc = JsonDocument.Parse(responcontent);
+                        string token = doc.RootElement.GetProperty("token").GetString() ?? string.Empty;
+                        string username = doc.RootElement.GetProperty("username").GetString() ?? string.Empty;
+                        return (true, "", token, username);
+                    }
+                    else
+                    {
+                        string errorBody = await recpon.Content.ReadAsStringAsync();
+                        MessageBox.Show("Ответ не пришел");
+                        return (false, errorBody, "", "");
+                    }
                 }
                 else
                 {
                     string errorBody = await recpon.Content.ReadAsStringAsync();
                     System.Windows.MessageBox.Show($"❌ Ошибка {recpon.StatusCode}: {errorBody}");
                     _logger.LogError($"❌ Ошибка {recpon.StatusCode}: {errorBody}");
-                    return (false, errorBody);
+                    return (false, errorBody, "", "");
                 }
             }
             catch (TaskCanceledException ex)
             {
                 await _taskCanccelException.RunDelegate(_taskCanccelException.Delegate, ex);
-                return (false, ex.Message);
+                return (false, ex.Message, "","");
             }
             catch (JsonException ex)
             {
                 await _jsonExceptionDelegate.RunDelegate(_jsonExceptionDelegate.Delegate, ex);
-                return (false, ex.Message);
+                return (false, ex.Message, "", "");
             }
             catch (HttpRequestException ex)
             {
                 await _httpExceptionDelegate.RunDelegate(_httpExceptionDelegate.Delegate, ex);
-                return (false, ex.Message);
+                return (false, ex.Message, "", "");
             }
             catch (Exception ex)
             {
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
-                return (false, ex.Message);
+                return (false, ex.Message, "", "");
             }
         }
     }

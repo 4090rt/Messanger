@@ -103,7 +103,6 @@ namespace MessangersUI
                     {
                         throw new OperationCanceledException();
                     }
-
                     await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Авторизирую..."));
                     await Task.Delay(4000, _CancellationToken);
                     var result = await _postLoginRequest.Request(datalist).ConfigureAwait(false);
@@ -113,7 +112,7 @@ namespace MessangersUI
                         await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Успешно!"));
                         await Dispatcher.InvokeAsync(() =>
                         {
-                            _MainWindow = new MainWindow();
+                            _MainWindow = new MainWindow(result.token, result.username);
                             _MainWindow.Show();
                             Window windowToClose = (Window)this.Parent;
                             windowToClose?.Close();

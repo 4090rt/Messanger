@@ -22,19 +22,25 @@ namespace MessangersUI
         public CancellationTokenSource _cancellationSource;
         public CancellationToken _token;
         public FabricNotification _fabricNotification;
-        public MainWindow()
+        
+        private readonly string _authToken;
+        private readonly string _username;
+
+        public MainWindow(string authToken, string username)
         {
             InitializeComponent();
+            _authToken = authToken;
+            _username = username;
             _cancellationSource = new CancellationTokenSource();
             _token = _cancellationSource.Token;
             _fabricNotification = new FabricNotification();
             gg();
-
         }
         private HubConnection? _connection;
         public async void gg()
         {
-            var hubUrl = "https://localhost:7167/chatHub";
+            // Добавляем токен в query string для WebSocket подключений
+            var hubUrl = $"https://localhost:7167/chatHub?access_token={Uri.EscapeDataString(_authToken)}";
 
             if (_connection == null)
             {
@@ -42,6 +48,11 @@ namespace MessangersUI
                    .WithUrl(hubUrl)
                    .WithAutomaticReconnect() // автоматическое переподключение
                    .Build();
+
+                _connection.On<string, string>("ReceiveMessage", (fromUser, message) =>
+                {
+                    textblock.Text = $"{fromUser}\n {message}";
+                });
 
                 var retrypolicy = Policy
                     .Handle<HttpRequestException>()
@@ -90,7 +101,7 @@ namespace MessangersUI
 
             var userName = TextName.Text;
             var message = TextMessage.Text;
-    
+            Group.Header = userName;
 
             if (string.IsNullOrEmpty(message))
             {
@@ -131,7 +142,8 @@ namespace MessangersUI
                         }
                 
                         await _connection.InvokeAsync("SendMessage", userName, message);
-                
+
+                        textblock.Text = $"Вы\n {message}";
                         var not = _fabricNotification.Method(NotificationsName.Send);
                         not.Notify();
                     });
@@ -148,7 +160,6 @@ namespace MessangersUI
                 }
                 finally
                 {
-                    System.Windows.MessageBox.Show("Очистка ресурсов");
                     _cancellationSource?.Dispose();
                     _cancellationSource = null;
                 }
@@ -162,6 +173,11 @@ namespace MessangersUI
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             _cancellationSource?.Cancel();
+
+        }
+
+        private void ListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
 
         }
     }
