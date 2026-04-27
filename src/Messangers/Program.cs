@@ -1,4 +1,5 @@
 using Messangers.Delegate;
+using Messangers.JWToken;
 using Messangers.SignalSettings.Hubs;
 using Messangers.SQLite.CreateDataBases;
 using Messangers.SQLite.InithilizateDataBaseCreate;
@@ -6,14 +7,59 @@ using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.RequestRegisterAndLogin;
 using Messangers.SQLite.UserLoginCheck;
 using MessangersUI.Delegate;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Text;
+using System.Text.Json;
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Регистрация сервисов
+
+string hsondoc = File.ReadAllText("appsettings.json");
+using JsonDocument doc = JsonDocument.Parse(hsondoc);
+
+string secretkey = doc.RootElement
+    .GetProperty("SecretKey")
+    .GetProperty("key")
+    .GetString();
+
+// 1. Р РµРіРёСЃС‚СЂР°С†РёСЏ СЃРµСЂРІРёСЃРѕРІ
 builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
 builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(OPTIONS =>
+    {
+        OPTIONS.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                // РџРѕР»СѓС‡Р°РµРј С‚РѕРєРµРЅ РёР· query string РґР»СЏ SignalR РїРѕРґРєР»СЋС‡РµРЅРёР№
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
+        };
+        OPTIONS.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = "https://localhost:7167",
+
+            ValidateAudience = true,
+            ValidAudience = "Client",
+
+            ValidateLifetime = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretkey)),
+
+            NameClaimType = JwtRegisteredClaimNames.UniqueName
+        };
+    });
 
 builder.Services.AddScoped<Inithializate>();
 builder.Services.AddScoped<PoolSQLite>();
@@ -24,24 +70,23 @@ builder.Services.AddScoped<SaveRequestInBdRegister>();
 builder.Services.AddScoped<CheckLogin>();
 builder.Services.AddScoped<CheckHashPasswordFromBD>();
 builder.Services.AddScoped<CheckUserInBD>();
+builder.Services.AddScoped<JWTokenSettings>();
 
 
-// 2. Настройка конфигурации
+// 2. РќР°СЃС‚СЂРѕР№РєР° РєРѕРЅС„РёРіСѓСЂР°С†РёРё
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddEnvironmentVariables();
 
-// 3. Настройка логирования
+// 3. РќР°СЃС‚СЂРѕР№РєР° Р»РѕРіРёСЂРѕРІР°РЅРёСЏ
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-// 4. Построение приложения
+// 4. РџРѕСЃС‚СЂРѕРµРЅРёРµ РїСЂРёР»РѕР¶РµРЅРёСЏ
 var app = builder.Build();
 
-// 5. Настройка pipeline (middleware)
-app.MapControllers();
-
+// 5. РќР°СЃС‚СЂРѕР№РєР° pipeline (middleware)
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
@@ -56,12 +101,14 @@ using (var scope = app.Services.CreateScope())
 
 app.UseHttpsRedirection();
 app.UseRouting();
+app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapHub<SignalHub>("/chatHub");
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 
-// 6. Запуск (здесь сервер начинает слушать запросы)
-Console.WriteLine("Сервер успешно запущен!");
-app.Run();  // ? блокирует выполнение, сервер работает
+// 6. Р—Р°РїСѓСЃРє (Р·РґРµСЃСЊ СЃРµСЂРІРµСЂ РЅР°С‡РёРЅР°РµС‚ СЃР»СѓС€Р°С‚СЊ Р·Р°РїСЂРѕСЃС‹)
+Console.WriteLine("РЎРµСЂРІРµСЂ СѓСЃРїРµС€РЅРѕ Р·Р°РїСѓС‰РµРЅ!");
+app.Run();  // ? Р±Р»РѕРєРёСЂСѓРµС‚ РІС‹РїРѕР»РЅРµРЅРёРµ, СЃРµСЂРІРµСЂ СЂР°Р±РѕС‚Р°РµС‚

@@ -1,8 +1,10 @@
-﻿using Messangers.ModelData;
+﻿using Messangers.JWToken;
+using Messangers.ModelData;
 using Messangers.SQLite.UserLoginCheck;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Polly;
 namespace Messangers.ControllerPost
 {
     [ApiController]
@@ -13,14 +15,16 @@ namespace Messangers.ControllerPost
         public ExceptionDelegate _exceptionDelegate;
         public CheckUserInBD _checkuser;
         public CheckHashPasswordFromBD _checkhashPassword;
+        public JWTokenSettings _jwtSettings;
 
         public PostControllerLogin (ILogger<PostControllerLogin> logger, ExceptionDelegate exceptionDelegate,
-            CheckUserInBD checkUserInBD, CheckHashPasswordFromBD checkhashPassword)
+            CheckUserInBD checkUserInBD, CheckHashPasswordFromBD checkhashPassword, JWTokenSettings jWTokenSettings)
         {
             _logger = logger;
             _exceptionDelegate = exceptionDelegate;
             _checkuser = checkUserInBD;
             _checkhashPassword = checkhashPassword;
+            _jwtSettings = jWTokenSettings;
         }
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] ModelDataLogin request)
@@ -45,9 +49,9 @@ namespace Messangers.ControllerPost
                 return BadRequest(new { error = "Неверный пароль"});
             }
 
-            //генерация jwt токена
-            _logger.LogWarning("Авторизирован");
-            return Ok(new {/*token = "",*/ username = request.Login});
+            string jwttoken = _jwtSettings.CreateToken(request.Login, "User");
+            _logger.LogWarning($"Авторизирован. Его токен{jwttoken}");
+            return Ok(new { token = jwttoken, username = request.Login});
 
         }
     }

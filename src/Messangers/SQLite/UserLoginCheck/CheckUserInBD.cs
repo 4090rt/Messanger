@@ -52,7 +52,7 @@ namespace Messangers.SQLite.UserLoginCheck
 
                     if (result != null)
                     {
-                        _logger.LogWarning($"Пользователь {Login} разегестрирован!");
+                        _logger.LogWarning($"Пользователь {Login} разегестрирован в базе, допущен к авторизации!");
                         return true;
                     }
                     else
