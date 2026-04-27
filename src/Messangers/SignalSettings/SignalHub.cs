@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Messangers.SignalSettings.Hubs
 {
@@ -15,13 +16,17 @@ namespace Messangers.SignalSettings.Hubs
         }
         public override async Task OnConnectedAsync()
         {
-            var username = Context.User?.FindFirst(JwtRegisteredClaimNames.UniqueName)?.Value;
+
+           var username = Context.User?.FindFirst(ClaimTypes.Name)?.Value;
+
 
             if (!string.IsNullOrEmpty(username))
             {
                 _onlineUsers[username] = Context.ConnectionId;
-                Console.WriteLine($"✅ {username} подключился. Онлайн: {_onlineUsers.Count}");
+                _logger.LogInformation($"✅ {username} подключился. ConnectionId: {Context.ConnectionId}. Онлайн: {_onlineUsers.Count}");
+                Console.WriteLine($"✅ {username} подключился. ConnectionId: {Context.ConnectionId}. Онлайн: {_onlineUsers.Count}");
             }
+            
             await base.OnConnectedAsync();
         }
 
@@ -40,7 +45,7 @@ namespace Messangers.SignalSettings.Hubs
 
         public async Task SendMessage(string touser, string message)
         {
-            var fromuser = Context.User?.FindFirst(JwtRegisteredClaimNames.UniqueName);
+            var fromuser = Context.User?.FindFirst(ClaimTypes.Name)?.Value;
 
             if (_onlineUsers.TryGetValue(touser, out var connectionId))
             {
