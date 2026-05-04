@@ -1,10 +1,14 @@
-﻿using MessangersUI.Notifications;
+﻿using Messangers.EthernetRequest;
+using MessangersUI.HttpGetRequest;
+using MessangersUI.HttpPostReuest;
+using MessangersUI.Notifications;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Polly;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -22,11 +26,15 @@ namespace MessangersUI
         public CancellationTokenSource _cancellationSource;
         public CancellationToken _token;
         public FabricNotification _fabricNotification;
+        public GetRequestPing _getRequestPing;
+        public HttpGetRequestProvider _httpGetRequestProvider;
+        public PostProviderClient _PostProviderClient;
+        public RequesetInfoProviders _RequestProviderClient;
         
         private readonly string _authToken;
         private readonly string _username;
 
-        public MainWindow(string authToken, string username)
+        public MainWindow(string authToken, string username, GetRequestPing getRequestPing, HttpGetRequestProvider httpGetRequestProvider, PostProviderClient postProviderClient, RequesetInfoProviders RequestProviderClient)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -34,6 +42,10 @@ namespace MessangersUI
             _cancellationSource = new CancellationTokenSource();
             _token = _cancellationSource.Token;
             _fabricNotification = new FabricNotification();
+            _getRequestPing = getRequestPing;
+            _httpGetRequestProvider = httpGetRequestProvider;
+            _PostProviderClient = postProviderClient;
+            _RequestProviderClient = RequestProviderClient;
             gg();
         }
         private HubConnection? _connection;
@@ -51,7 +63,10 @@ namespace MessangersUI
 
                 _connection.On<string, string>("ReceiveMessage", (fromUser, message) =>
                 {
-                    textblock.Text = $"{fromUser}\n {message}";
+                    Dispatcher.Invoke(() =>
+                    {
+                        textblock.Text = $"{fromUser}\n{message}";
+                    });
                 });
 
                 var retrypolicy = Policy
@@ -98,7 +113,6 @@ namespace MessangersUI
                 System.Windows.MessageBox.Show("_connection == null");
                 return;
             }
-
             var userName = TextName.Text;
             var message = TextMessage.Text;
             Group.Header = userName;
@@ -112,7 +126,6 @@ namespace MessangersUI
 
             if (_connection.State == HubConnectionState.Connected)
             {
-        
                 _cancellationSource = new CancellationTokenSource();
                 _token = _cancellationSource.Token;
         
@@ -179,6 +192,33 @@ namespace MessangersUI
         private void ListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
 
+        }
+
+        private async void Button_ClickpING(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var result = await _getRequestPing.Request();
+                var result2 = await _httpGetRequestProvider.Request();
+                byte[] bytes = await _RequestProviderClient.CacheReqquest();
+                await _PostProviderClient.PostRequest(bytes);
+                if (result != null && result2 != null)
+                {
+                    foreach (var item in result)
+                    {
+                        label2.Content = $"Ping: {item.PingMs}\n Host: {item.Host}";
+                    }
+
+                    foreach (var item in result2)
+                    {
+                        providerlabel.Content = $"City: {item.City}\n Loc: {item.Loc}\n TimeZone: {item.Timezone}";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show("dsdd" + ex.Message);
+            }
         }
     }
 }

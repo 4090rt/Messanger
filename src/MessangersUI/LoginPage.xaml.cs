@@ -1,8 +1,11 @@
-﻿using MessangersUI.DataModel;
+﻿using Messangers.EthernetRequest;
+using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
+using MessangersUI.HttpGetRequest;
 using MessangersUI.HttpPostReuest;
 using MessangersUI.Notifications;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
@@ -29,6 +32,10 @@ namespace MessangersUI
     public partial class LoginPage : Page
     {
         public ILogger<RegistrPage> _logger;
+        public ILogger<GetRequestPing> _pinglogger;
+        public ILogger<HttpGetRequestProvider> _loggerprovider;
+        public ILogger<PostProviderClient> _postproviderlogger;
+        public ILogger<RequesetInfoProviders> _RequesetInfoProviderslogger;
         public PostRegisterRequest _PostRegisterRequest;
         public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
@@ -44,7 +51,12 @@ namespace MessangersUI
         private readonly FabricNotification _fabricNotification;
         private readonly PasswordhASH _passwordhASH;
         private readonly PostLoginRequest _postLoginRequest;
+        private readonly GetRequestPing _getRequestPing;
+        private readonly HttpGetRequestProvider _httpGetRequestProvider;
+        public PostProviderClient _PostProviderClient;
+        public RequesetInfoProviders _RequestProviderClient;
         public LoginPage _loginpage;
+        private readonly IMemoryCache _memoryCache;
 
         string Login = "";
         string Password = "";
@@ -63,10 +75,16 @@ namespace MessangersUI
             _taskCanccelException = new TaskCanccelException();
             _fabricNotification = new FabricNotification();
 
+            _memoryCache = new MemoryCache(new MemoryCacheOptions());
             var loggerFactory = LoggerFactory.Create(builder => builder.AddConsole());
             _logger = loggerFactory.CreateLogger<RegistrPage>();
             _passwordpash = loggerFactory.CreateLogger<PasswordhASH>();
             _loggerlog = loggerFactory.CreateLogger<PostLoginRequest>();
+            _pinglogger = loggerFactory.CreateLogger<GetRequestPing>();
+            _loggerprovider = loggerFactory.CreateLogger<HttpGetRequestProvider>();
+            _postproviderlogger = loggerFactory.CreateLogger<PostProviderClient>();
+            _RequesetInfoProviderslogger = loggerFactory.CreateLogger<RequesetInfoProviders>();
+
 
             var services = new ServiceCollection();
             services.AddHttpClient();
@@ -74,12 +92,37 @@ namespace MessangersUI
 
             _passwordhASH = new PasswordhASH(_passwordpash, _exceptionDelegate);
 
+ 
+
             _postLoginRequest = new PostLoginRequest(_loggerlog,
                 _httpClientFactory,
                 _exceptionDelegate,
                 _httpExceptionDelegate,
                 _jsonExceptionDelegate,
                 _taskCanccelException);
+
+            _getRequestPing = new GetRequestPing(_pinglogger,
+                _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+            _httpGetRequestProvider = new HttpGetRequestProvider(_loggerprovider, 
+                _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+            _PostProviderClient = new PostProviderClient(_postproviderlogger,
+                _httpClientFactory,
+                _exceptionDelegate, 
+                _httpExceptionDelegate,
+                _taskCanccelException);
+            _RequestProviderClient = new RequesetInfoProviders(_RequesetInfoProviderslogger,_httpClientFactory, _memoryCache,_exceptionDelegate,_httpExceptionDelegate,_jsonExceptionDelegate,_taskCanccelException);
+
+
         }
         public async Task<List<DataLogin>> RequestLogin()
         {
@@ -103,16 +146,13 @@ namespace MessangersUI
                     {
                         throw new OperationCanceledException();
                     }
-                    await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Авторизирую..."));
-                    await Task.Delay(4000, _CancellationToken);
                     var result = await _postLoginRequest.Request(datalist).ConfigureAwait(false);
                     if (result.Succes == true)
                     {
 
-                        await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Успешно!"));
                         await Dispatcher.InvokeAsync(() =>
                         {
-                            _MainWindow = new MainWindow(result.token, result.username);
+                            _MainWindow = new MainWindow(result.token, result.username, _getRequestPing, _httpGetRequestProvider, _PostProviderClient, _RequestProviderClient);
                             _MainWindow.Show();
                             Window windowToClose = (Window)this.Parent;
                             windowToClose?.Close();
@@ -149,14 +189,17 @@ namespace MessangersUI
             }
             finally
             {
-                _source.Dispose();
-                _source = null;
+                if (_source != null)
+                {
+                    _source.Dispose();
+                    _source = null;
+                }
             }
         }
 
         private async void Button_Click_2(object sender, RoutedEventArgs e)
         {
-            await RequestLogin();
+            var result = await RequestLogin();
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
