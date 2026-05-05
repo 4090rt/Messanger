@@ -33,7 +33,6 @@ namespace MessangersUI.HttpPostReuest
 
         public async Task<(string message, string state)> PostRequest(byte[] data)
         {
-            System.Windows.MessageBox.Show("нАЧИНАЮ ОТПРАВКУ");
             try
             {
                 var client = _httpClientFactory.CreateClient("Client1Http2.0");

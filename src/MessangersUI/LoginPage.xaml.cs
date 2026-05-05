@@ -35,6 +35,7 @@ namespace MessangersUI
         public ILogger<GetRequestPing> _pinglogger;
         public ILogger<HttpGetRequestProvider> _loggerprovider;
         public ILogger<PostProviderClient> _postproviderlogger;
+        public ILogger<PingRequestServerMessang> _loggerpingMyserver;
         public ILogger<RequesetInfoProviders> _RequesetInfoProviderslogger;
         public PostRegisterRequest _PostRegisterRequest;
         public ExceptionDelegate _exceptionDelegate;
@@ -57,6 +58,8 @@ namespace MessangersUI
         public RequesetInfoProviders _RequestProviderClient;
         public LoginPage _loginpage;
         private readonly IMemoryCache _memoryCache;
+        private readonly PingRequestServerMessang _pingRequestServerMessang;
+
 
         string Login = "";
         string Password = "";
@@ -84,6 +87,7 @@ namespace MessangersUI
             _loggerprovider = loggerFactory.CreateLogger<HttpGetRequestProvider>();
             _postproviderlogger = loggerFactory.CreateLogger<PostProviderClient>();
             _RequesetInfoProviderslogger = loggerFactory.CreateLogger<RequesetInfoProviders>();
+            _loggerpingMyserver = loggerFactory.CreateLogger<PingRequestServerMessang>();
 
 
             var services = new ServiceCollection();
@@ -120,7 +124,18 @@ namespace MessangersUI
                 _exceptionDelegate, 
                 _httpExceptionDelegate,
                 _taskCanccelException);
-            _RequestProviderClient = new RequesetInfoProviders(_RequesetInfoProviderslogger,_httpClientFactory, _memoryCache,_exceptionDelegate,_httpExceptionDelegate,_jsonExceptionDelegate,_taskCanccelException);
+            _RequestProviderClient = new RequesetInfoProviders(_RequesetInfoProviderslogger,
+                _httpClientFactory,
+                _memoryCache,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+            _pingRequestServerMessang = new PingRequestServerMessang(_loggerpingMyserver, _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
 
 
         }
@@ -152,7 +167,13 @@ namespace MessangersUI
 
                         await Dispatcher.InvokeAsync(() =>
                         {
-                            _MainWindow = new MainWindow(result.token, result.username, _getRequestPing, _httpGetRequestProvider, _PostProviderClient, _RequestProviderClient);
+                            _MainWindow = new MainWindow(result.token,
+                                result.username,
+                                _getRequestPing,
+                                _httpGetRequestProvider,
+                                _PostProviderClient, 
+                                _RequestProviderClient,
+                                _pingRequestServerMessang);
                             _MainWindow.Show();
                             Window windowToClose = (Window)this.Parent;
                             windowToClose?.Close();

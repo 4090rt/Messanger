@@ -30,11 +30,12 @@ namespace MessangersUI
         public HttpGetRequestProvider _httpGetRequestProvider;
         public PostProviderClient _PostProviderClient;
         public RequesetInfoProviders _RequestProviderClient;
+        public PingRequestServerMessang _PingRequestServerMessang;
         
         private readonly string _authToken;
         private readonly string _username;
 
-        public MainWindow(string authToken, string username, GetRequestPing getRequestPing, HttpGetRequestProvider httpGetRequestProvider, PostProviderClient postProviderClient, RequesetInfoProviders RequestProviderClient)
+        public MainWindow(string authToken, string username, GetRequestPing getRequestPing, HttpGetRequestProvider httpGetRequestProvider, PostProviderClient postProviderClient, RequesetInfoProviders RequestProviderClient, PingRequestServerMessang pingRequestServerMessang)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -47,6 +48,7 @@ namespace MessangersUI
             _PostProviderClient = postProviderClient;
             _RequestProviderClient = RequestProviderClient;
             gg();
+            _PingRequestServerMessang = pingRequestServerMessang;
         }
         private HubConnection? _connection;
         public async void gg()
@@ -198,21 +200,35 @@ namespace MessangersUI
         {
             try
             {
+                string pingToGoogle = "";
+                string ProviderInfo = "";
+                double pingToMyServer = 0;
+
                 var result = await _getRequestPing.Request();
                 var result2 = await _httpGetRequestProvider.Request();
+                var result3 = await _PingRequestServerMessang.Request();
+
                 byte[] bytes = await _RequestProviderClient.CacheReqquest();
                 await _PostProviderClient.PostRequest(bytes);
-                if (result != null && result2 != null)
+
+                if (result != null && result2 != null && result3 > 0)
                 {
                     foreach (var item in result)
                     {
-                        label2.Content = $"Ping: {item.PingMs}\n Host: {item.Host}";
+                        pingToGoogle = $"Ping: {item.PingMs}\n Host: {item.Host}";
+
+                        foreach (var item2 in result2)
+                        {
+                            ProviderInfo = $"City: {item2.City}\n Loc: {item2.Loc}\n TimeZone: {item2.Timezone}";
+                        }
+                    
                     }
 
-                    foreach (var item in result2)
-                    {
-                        providerlabel.Content = $"City: {item.City}\n Loc: {item.Loc}\n TimeZone: {item.Timezone}";
-                    }
+                    pingToMyServer = result3;
+                    System.Windows.MessageBox.Show($"Параметры сети: \n" +
+                        $"Местоположение сервера:  \n  {ProviderInfo} \n" +
+                        $"Пинг до Google: \n {pingToGoogle} \n" +
+                        $"Пинг до нашего сервера:  \n Ping: {pingToMyServer}");
                 }
             }
             catch (Exception ex)
