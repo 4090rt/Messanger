@@ -29,7 +29,16 @@ namespace Messangers.SQLite.CreateDataBases
 
             if (_isCheckedCreate == false)
             {
-                await CreateRegisterBases();
+                var result1 = await CreateRegisterBases();;
+
+                if (result1)
+                {
+                    var result2 = await CreateDataBaseUserPRovider();
+                }
+                else
+                {
+                    _logger.LogError("CreateRegisterBases вернул false, второй метод не вызван");
+                }
             }
 
             _isCheckedCreate = true;
@@ -53,6 +62,45 @@ namespace Messangers.SQLite.CreateDataBases
 
                      _logger.LogInformation($"База RegisterBase загружена!");
                      return true;
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                await _sQLiteExceptionDelegate.RunDelegate(_sQLiteExceptionDelegate.Delegate, ex);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
+                return false;
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    _poolSQLiteConnection.CloseConnection(connection);
+                }
+            }
+        }
+
+        public async Task<bool> CreateDataBaseUserPRovider()
+        {
+            SQLiteConnection connection = null;
+            try
+            {
+                connection = _poolSQLiteConnection.ConnectionOpen();
+
+                string command = "CREATE TABLE IF NOT EXISTS ProviderUserBase(" +
+                    "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "Location TEXT NOT NULL," +
+                    "City TEXT NOT NULL," +
+                    "HistName TEXT NOT NULL)";
+
+                await using (var sqlitecomand = new SQLiteCommand(command, connection))
+                {
+                    await sqlitecomand.ExecuteNonQueryAsync().ConfigureAwait(false);
+                    _logger.LogInformation($"База ProviderUserBase загружена!");
+                    return true;
                 }
             }
             catch (SQLiteException ex)

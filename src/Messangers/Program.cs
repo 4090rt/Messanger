@@ -1,4 +1,6 @@
 using Messangers.Delegate;
+using Messangers.DeserializeRequestHttp;
+using Messangers.EthernetRequest;
 using Messangers.JWToken;
 using Messangers.SignalSettings.Hubs;
 using Messangers.SQLite.CreateDataBases;
@@ -6,10 +8,12 @@ using Messangers.SQLite.InithilizateDataBaseCreate;
 using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.RequestRegisterAndLogin;
 using Messangers.SQLite.UserLoginCheck;
+using Messangers.SQLite.UserProviderInsert;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
+using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
 using System.Text.Json;
@@ -29,6 +33,7 @@ builder.Services.AddSignalR();
 builder.Services.AddRazorPages();
 builder.Services.AddMemoryCache();
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(OPTIONS =>
     {
@@ -39,9 +44,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 // Получаем токен из query string для SignalR подключений
                 var accessToken = context.Request.Query["access_token"];
                 var path = context.HttpContext.Request.Path;
+                Console.WriteLine($"🔑 Получен токен: {accessToken}");
+                Console.WriteLine($"📍 Путь: {path}");
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
                 {
                     context.Token = accessToken;
+                    Console.WriteLine("✅ Токен установлен в контекст");
+
                 }
                 return Task.CompletedTask;
             }
@@ -71,7 +80,10 @@ builder.Services.AddScoped<CheckLogin>();
 builder.Services.AddScoped<CheckHashPasswordFromBD>();
 builder.Services.AddScoped<CheckUserInBD>();
 builder.Services.AddScoped<JWTokenSettings>();
-
+builder.Services.AddScoped<PingRequest>();
+builder.Services.AddScoped<RequesetInfoProviders>();
+builder.Services.AddScoped<Deserialize>();
+builder.Services.AddScoped<InsertProvider>();
 
 // 2. Настройка конфигурации
 builder.Configuration
@@ -109,6 +121,51 @@ app.MapHub<SignalHub>("/chatHub");
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
 
+_ = Task.Run(async () =>
+{
+    while (true)
+    {
+        string command = Console.ReadLine();
+
+        if (command == "provider")
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                var request = scope.ServiceProvider.GetRequiredService<RequesetInfoProviders>();
+                var result = await request.CacheRequest();
+                foreach (var item in result)
+                {
+                    Console.WriteLine($"IP: {item.IP}");
+                    Console.WriteLine($"Город: {item.City}");
+                    Console.WriteLine($"Провайдер: {item.Org}");
+                    Console.WriteLine($"Регион: {item.Region}");
+                    Console.WriteLine($"Страна: {item.Country}");
+                    Console.WriteLine($"Почтовый индекс: {item.Postal}");
+                }
+            }
+        }
+
+        if (command == "ping")
+        {
+            using (var scope = app.Services.CreateScope())
+            {
+                string host = "www.google.com";
+                var requesrt = scope.ServiceProvider.GetService<PingRequest>();
+                var result = await requesrt.Request(host);
+
+                foreach (var item in result)
+                {
+                    Console.WriteLine($"PingMS: {item.PingMs}");
+                    Console.WriteLine($"Status: {item.Status}");
+                    Console.WriteLine($"HOST: {item.Host}");
+                    Console.WriteLine($"Errors: {item.Error}");
+                }
+            }
+        }
+    }
+});
 // 6. Запуск (здесь сервер начинает слушать запросы)
 Console.WriteLine("Сервер успешно запущен!");
 app.Run();  // ? блокирует выполнение, сервер работает
+
+

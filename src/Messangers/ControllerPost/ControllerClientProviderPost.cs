@@ -1,5 +1,8 @@
 ﻿using Messangers.ModelData;
+using Messangers.SQLite.UserProviderInsert;
 using Microsoft.AspNetCore.Mvc;
+using System.Text;
+using System.Text.Json;
 
 namespace Messangers.ControllerPost
 {
@@ -8,9 +11,11 @@ namespace Messangers.ControllerPost
     public class ControllerClientProviderPost: ControllerBase
     {
         private readonly ILogger<ControllerClientProviderPost> _logger;
-        public ControllerClientProviderPost(ILogger<ControllerClientProviderPost> logger)
+        public InsertProvider _insertProvider;
+        public ControllerClientProviderPost(ILogger<ControllerClientProviderPost> logger, InsertProvider insertProvider)
         {
             _logger = logger;
+            _insertProvider = insertProvider;
         }
         [HttpPost("provider")]
         public async Task<IActionResult> Controller()
@@ -34,8 +39,17 @@ namespace Messangers.ControllerPost
             try
             {
                 byte[] data = Convert.FromBase64String(base64Data);
-                _logger.LogInformation($"Декодировано {data.Length} байт");
-                return Ok(new { message = "Успешно", state = "success" });
+                string datastring = Encoding.UTF8.GetString(data);
+                IpIfo list = JsonSerializer.Deserialize<IpIfo>(datastring);
+                if (list != null)
+                {
+                    await _insertProvider.InsertRequest(list);
+                    return Ok(new { message = "Успешно", state = "success" });
+                }
+                else
+                {
+                    return BadRequest(new { message = "Не удалось обработать данные", state = "error" });
+                }
             }
             catch (Exception ex)
             {
