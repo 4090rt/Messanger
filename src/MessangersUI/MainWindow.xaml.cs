@@ -2,6 +2,8 @@
 using MessangersUI.HttpGetRequest;
 using MessangersUI.HttpPostReuest;
 using MessangersUI.Notifications;
+using MessangersUI.Sqlite.CreateTable;
+using MessangersUI.Sqlite.InsertMethods;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Polly;
@@ -31,11 +33,17 @@ namespace MessangersUI
         public PostProviderClient _PostProviderClient;
         public RequesetInfoProviders _RequestProviderClient;
         public PingRequestServerMessang _PingRequestServerMessang;
+        public SearchUserPost _searchuser;
+        public Create _create;
+        public InsertContacts _insertContacts;
         
         private readonly string _authToken;
         private readonly string _username;
 
-        public MainWindow(string authToken, string username, GetRequestPing getRequestPing, HttpGetRequestProvider httpGetRequestProvider, PostProviderClient postProviderClient, RequesetInfoProviders RequestProviderClient, PingRequestServerMessang pingRequestServerMessang)
+        public MainWindow(string authToken, string username, GetRequestPing getRequestPing, 
+            HttpGetRequestProvider httpGetRequestProvider, PostProviderClient postProviderClient, 
+            RequesetInfoProviders RequestProviderClient, PingRequestServerMessang pingRequestServerMessang,
+            SearchUserPost searchUserPost, Create create, InsertContacts insertContacts)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -49,13 +57,15 @@ namespace MessangersUI
             _RequestProviderClient = RequestProviderClient;
             gg();
             _PingRequestServerMessang = pingRequestServerMessang;
+            _searchuser = searchUserPost;
+            _create = create;
+            _insertContacts = insertContacts;
         }
         private HubConnection? _connection;
         public async void gg()
         {
             // Добавляем токен в query string для WebSocket подключений
             var hubUrl = $"https://localhost:7167/chatHub?access_token={Uri.EscapeDataString(_authToken)}";
-
             if (_connection == null)
             {
                 _connection = new HubConnectionBuilder()
@@ -65,10 +75,6 @@ namespace MessangersUI
 
                 _connection.On<string, string>("ReceiveMessage", (fromUser, message) =>
                 {
-                    Dispatcher.Invoke(() =>
-                    {
-                        textblock.Text = $"{fromUser}\n{message}";
-                    });
                 });
 
                 var retrypolicy = Policy
@@ -116,16 +122,6 @@ namespace MessangersUI
                 return;
             }
             var userName = TextName.Text;
-            var message = TextMessage.Text;
-            Group.Header = userName;
-
-            if (string.IsNullOrEmpty(message))
-            {
-                var not = _fabricNotification.Method(NotificationsName.SendCancelNull);
-                not.Notify();
-                return;
-            }
-
             if (_connection.State == HubConnectionState.Connected)
             {
                 _cancellationSource = new CancellationTokenSource();
@@ -155,12 +151,17 @@ namespace MessangersUI
                         {
                             throw new OperationCanceledException();
                         }
-                
-                        await _connection.InvokeAsync("SendMessage", userName, message);
+                        string username = TextName.Text;
+                        var resultauserseRCH = await _searchuser.Request(username).ConfigureAwait(false);
+                        if (resultauserseRCH == true)
+                        {
+                            DateTime date = DateTime.Now;
+                            string photo = "";
 
-                        textblock.Text = $"Вы\n {message}";
-                        var not = _fabricNotification.Method(NotificationsName.Send);
-                        not.Notify();
+                            System.Windows.MessageBox.Show("Пользователь найден");
+                            System.Windows.MessageBox.Show("Сохраняю");
+                            await _insertContacts.SaveContact(username, date, photo);
+                        }
                     });
           
                 }

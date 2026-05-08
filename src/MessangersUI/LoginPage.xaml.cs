@@ -5,6 +5,9 @@ using MessangersUI.HasihingPass;
 using MessangersUI.HttpGetRequest;
 using MessangersUI.HttpPostReuest;
 using MessangersUI.Notifications;
+using MessangersUI.Sqlite;
+using MessangersUI.Sqlite.CreateTable;
+using MessangersUI.Sqlite.InsertMethods;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -37,12 +40,17 @@ namespace MessangersUI
         public ILogger<PostProviderClient> _postproviderlogger;
         public ILogger<PingRequestServerMessang> _loggerpingMyserver;
         public ILogger<RequesetInfoProviders> _RequesetInfoProviderslogger;
+        public ILogger<InsertContacts> _loggerinsert;
+        public ILogger<SearchUserPost> _loggersearchuser;
+        public ILogger<Create> _loggercreate;
         public PostRegisterRequest _PostRegisterRequest;
         public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
         public CancellationTokenSource _source;
         public CancellationToken _CancellationToken;
         public MainWindow _MainWindow;
+        public PoolSQLite _sqlitepool;
+        public ILogger<PoolSQLite> _loggerpool;
         private readonly ILogger<PostLoginRequest> _loggerlog;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly HttpExceptionDelegate _httpExceptionDelegate;
@@ -59,12 +67,14 @@ namespace MessangersUI
         public LoginPage _loginpage;
         private readonly IMemoryCache _memoryCache;
         private readonly PingRequestServerMessang _pingRequestServerMessang;
-
+        public SearchUserPost _sarcuuser;
+        public Create _create;
+        public InsertContacts _insertContacts;
 
         string Login = "";
         string Password = "";
         List<DataLogin> datalist = new List<DataLogin>();
-        public LoginPage()
+        public  LoginPage()
         {
             InitializeComponent();
 
@@ -88,6 +98,10 @@ namespace MessangersUI
             _postproviderlogger = loggerFactory.CreateLogger<PostProviderClient>();
             _RequesetInfoProviderslogger = loggerFactory.CreateLogger<RequesetInfoProviders>();
             _loggerpingMyserver = loggerFactory.CreateLogger<PingRequestServerMessang>();
+            _loggersearchuser = loggerFactory.CreateLogger<SearchUserPost>();
+            _loggercreate = loggerFactory.CreateLogger<Create>();
+            _loggerpool = loggerFactory.CreateLogger<PoolSQLite>();
+            _loggerinsert = loggerFactory.CreateLogger<InsertContacts>();
 
 
             var services = new ServiceCollection();
@@ -95,8 +109,6 @@ namespace MessangersUI
             _httpClientFactory = services.BuildServiceProvider().GetRequiredService<IHttpClientFactory>();
 
             _passwordhASH = new PasswordhASH(_passwordpash, _exceptionDelegate);
-
- 
 
             _postLoginRequest = new PostLoginRequest(_loggerlog,
                 _httpClientFactory,
@@ -137,7 +149,18 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _sarcuuser = new SearchUserPost(_loggersearchuser, _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _taskCanccelException);
 
+            _sqlitepool = new PoolSQLite(_loggerpool, _exceptionDelegate);
+
+            _create = new Create(_loggercreate, _sqlitepool, _exceptionDelegate);
+
+            _insertContacts = new InsertContacts(_loggerinsert, _sqlitepool);
+
+            CreateBase();
         }
         public async Task<List<DataLogin>> RequestLogin()
         {
@@ -173,7 +196,10 @@ namespace MessangersUI
                                 _httpGetRequestProvider,
                                 _PostProviderClient, 
                                 _RequestProviderClient,
-                                _pingRequestServerMessang);
+                                _pingRequestServerMessang,
+                                _sarcuuser,
+                                _create,
+                                _insertContacts);
                             _MainWindow.Show();
                             Window windowToClose = (Window)this.Parent;
                             windowToClose?.Close();
@@ -217,7 +243,10 @@ namespace MessangersUI
                 }
             }
         }
-
+        public async Task CreateBase()
+        {
+           await _create.Proverka();
+        }
         private async void Button_Click_2(object sender, RoutedEventArgs e)
         {
             var result = await RequestLogin();
