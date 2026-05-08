@@ -65,11 +65,11 @@ namespace Messangers.SQLite.RequestRegisterAndLogin
             {
                 if (sQLiteTransaction != null)
                 { 
-                    
+                    sQLiteTransaction.Dispose();
                 }
                 if (connection != null)
-                { 
-                    
+                {
+                    _poolSQLiteConnection.CloseConnection(connection);
                 }
             }
         }

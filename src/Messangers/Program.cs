@@ -9,6 +9,7 @@ using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.RequestRegisterAndLogin;
 using Messangers.SQLite.UserLoginCheck;
 using Messangers.SQLite.UserProviderInsert;
+using Messangers.SQLite.UserSerach;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Logging;
@@ -84,6 +85,7 @@ builder.Services.AddScoped<PingRequest>();
 builder.Services.AddScoped<RequesetInfoProviders>();
 builder.Services.AddScoped<Deserialize>();
 builder.Services.AddScoped<InsertProvider>();
+builder.Services.AddScoped<Search>();
 
 // 2. Настройка конфигурации
 builder.Configuration
