@@ -20,6 +20,7 @@ namespace Messangers.ControllerPost
         {
             try
             {
+                _logger.LogInformation("Начинаю поиск пользователя для добавления в контакты");
                 string base64Data = await new StreamReader(Request.Body).ReadToEndAsync();
 
                 if (base64Data == null)
@@ -31,6 +32,7 @@ namespace Messangers.ControllerPost
 
                 if (requestinbd == true)
                 {
+                    _logger.LogInformation("ползователь найден!");
                     return Ok(new { message = "Успешно", result = "true" });
                 }
                 else

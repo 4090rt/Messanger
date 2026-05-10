@@ -46,7 +46,6 @@ namespace Messangers.SQLite.UserSerach
 
         public async Task<bool> RequestCache(string username)
         {
-            _logger.LogError("АВРАВШАВШАВРШАВШРАВ");
             string cachekey = $"cache_key{username}search";
             string stalecache = $"stale{cachekey}";
             bool oldcache = false;
@@ -106,7 +105,6 @@ namespace Messangers.SQLite.UserSerach
 
                 var fallbackresult = await fallback.ExecuteAsync(async () =>
                 {
-                    _logger.LogError("Request");
                     var result = await Request(username).ConfigureAwait(false);
 
                     var options = new MemoryCacheEntryOptions()

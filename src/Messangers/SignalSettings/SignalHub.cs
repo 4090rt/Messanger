@@ -47,10 +47,13 @@ namespace Messangers.SignalSettings.Hubs
         {
             var fromuser = Context.User?.FindFirst(ClaimTypes.Name)?.Value;
 
+            _logger.LogInformation($"Онлайн пользователи: {string.Join(", ", _onlineUsers.Keys)}");
             if (_onlineUsers.TryGetValue(touser, out var connectionId))
             {
+                _logger.LogInformation($"Найден ConnectionId: {connectionId} для {touser}");
+
                 await Clients.Client(connectionId).SendAsync("ReceiveMessage", fromuser, message);
-                _logger.LogInformation("Получено сообщение от {User}: {Message}", fromuser, message);
+                _logger.LogInformation("Сообщение отправлено успешно!");
             }
             else
             {

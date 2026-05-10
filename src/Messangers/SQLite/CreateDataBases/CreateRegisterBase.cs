@@ -34,6 +34,11 @@ namespace Messangers.SQLite.CreateDataBases
                 if (result1)
                 {
                     var result2 = await CreateDataBaseUserPRovider();
+
+                    if (result2)
+                    {
+                        var result3 = await CreateDataBaseUserCoNTACT();
+                    }
                 }
                 else
                 {
@@ -100,6 +105,45 @@ namespace Messangers.SQLite.CreateDataBases
                 {
                     await sqlitecomand.ExecuteNonQueryAsync().ConfigureAwait(false);
                     _logger.LogInformation($"База ProviderUserBase загружена!");
+                    return true;
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                await _sQLiteExceptionDelegate.RunDelegate(_sQLiteExceptionDelegate.Delegate, ex);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
+                return false;
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    _poolSQLiteConnection.CloseConnection(connection);
+                }
+            }
+        }
+
+        public async Task<bool> CreateDataBaseUserCoNTACT()
+        {
+            SQLiteConnection connection = null;
+            try
+            {
+                connection = _poolSQLiteConnection.ConnectionOpen();
+
+                string command = "CREATE TABLE IF NOT EXISTS ContactUserBD(" +
+                    "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "UserName TEXT NOT NULL," +
+                    "LoginContact TEXT NOT NULL," +
+                    "Photo TEXT NOT NULL)";
+
+                await using (var commandsql = new SQLiteCommand(command, connection))
+                { 
+                    await commandsql.ExecuteNonQueryAsync().ConfigureAwait(false);
+                    _logger.LogInformation($"База ContactUserBD загружена!");
                     return true;
                 }
             }
