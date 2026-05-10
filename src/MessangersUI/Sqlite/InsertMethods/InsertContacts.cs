@@ -21,21 +21,20 @@ namespace MessangersUI.Sqlite.InsertMethods
             
         }
 
-        public async Task SaveContact(string username, DateTime dateTime, string photo)
+        public async Task<bool> SaveContact(string user, string username, DateTime dateTime, string photo)
         {
-            MessageBox.Show("В методе");
             SQLiteConnection connection = null;
             SQLiteTransaction sqliteTransaction = null;
             try
             {
                 connection = _poolSQLite.ConnctionOpen();
-                MessageBox.Show("Начинаю выполнение");
                 await using (sqliteTransaction = connection.BeginTransaction())
                 {
-                    string command = "INSERT INTO [ContactsBase] (Login, Date, PHOTO) VALUES (@L, @D, @P)";
+                    string command = "INSERT INTO [ContactsBase] (User, Login, Date, PHOTO) VALUES (@U, @L, @D, @P)";
 
                     await using (var sqlcommand = new SQLiteCommand(command, connection, sqliteTransaction))
                     {
+                        sqlcommand.Parameters.AddWithValue("@U", user);
                         sqlcommand.Parameters.AddWithValue("@L", username);
                         sqlcommand.Parameters.AddWithValue("@D", dateTime);
                         sqlcommand.Parameters.AddWithValue("@P", photo);
@@ -44,25 +43,28 @@ namespace MessangersUI.Sqlite.InsertMethods
 
                         if (rows > 0)
                         {
-                            MessageBox.Show("Сохранено");
+                            await sqliteTransaction.CommitAsync().ConfigureAwait(false);
+                            return true;
                         }
                         else
                         {
                             MessageBox.Show("НЕ Сохранено");
                         }
                     }
-                    await sqliteTransaction.CommitAsync().ConfigureAwait(false);
+                    return true;
                 }
             }
             catch (SQLiteException ex)
             {
                 MessageBox.Show("Возникло sql исключение" + ex.Message + ex.StackTrace);
                 _logger.LogError("Возникло sql исключение" + ex.Message + ex.StackTrace);
+                return false;
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Возникло sql исключение" + ex.Message + ex.StackTrace);
                 _logger.LogError("Возникло исключение" + ex.Message + ex.StackTrace);
+                return false;
             }
             finally
             {

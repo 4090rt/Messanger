@@ -42,7 +42,14 @@ namespace MessangersUI.Sqlite.SelectMethods
             _Is_chekedindex = true;
         }
 
-        public async Task<List<UserContact>> CacheRequest()
+        public void ClearCache()
+        {
+            string cache_key = "cachekey_contacts";
+            _memoryCache.Remove(cache_key);
+            _logger.LogInformation("Кэш контактов очищен");
+        }
+
+        public async Task<List<UserContact>> CacheRequest(string user)
         {
             string cache_key = "cachekey_contacts";
             string stalecachekey = $"stale{cache_key}";
@@ -104,7 +111,7 @@ namespace MessangersUI.Sqlite.SelectMethods
 
                 var fallbackresult = await fallback.ExecuteAsync(async () =>
                 {
-                    var result = await Request().ConfigureAwait(false);
+                    var result = await Request(user).ConfigureAwait(false);
 
                     if (result != null)
                     {
@@ -147,7 +154,7 @@ namespace MessangersUI.Sqlite.SelectMethods
             }
         }
 
-        public async Task<List<UserContact>> Request()
+        public async Task<List<UserContact>> Request(string user)
         {
            string username;
            string photo;
@@ -157,10 +164,11 @@ namespace MessangersUI.Sqlite.SelectMethods
             { 
                 sQLiteConnection = _poosqlite.ConnctionOpen();
 
-                string command = "SELECT Login, PHOTO FROM ContactsBase";
+                string command = "SELECT Login, PHOTO FROM ContactsBase WHERE User = @U";
 
                 await using (var sqlcommand = new SQLiteCommand(command, sQLiteConnection))
                 {
+                    sqlcommand.Parameters.AddWithValue("@U", user);
                    var result =  await sqlcommand.ExecuteReaderAsync().ConfigureAwait(false);
 
                     while (await result.ReadAsync())
@@ -207,7 +215,7 @@ namespace MessangersUI.Sqlite.SelectMethods
             {
                 sQLiteConnection = _poosqlite.ConnctionOpen();
 
-                string command = "CREATE INDEX IF NOT EXISTS IX_ContactsBase_Index ON ContactsBase";
+                string command = "CREATE INDEX IF NOT EXISTS IX_ContactsBase_Index ON ContactsBase(User)";
 
                 await using (var sqlcomand = new SQLiteCommand(command, sQLiteConnection))
                 { 

@@ -26,7 +26,6 @@ namespace MessangersUI.Sqlite.CreateTable
         }
         public async Task Proverka()
         {
-            System.Windows.MessageBox.Show("Создание базы");
             if (_isCheckedCreate == true) return;
 
             if (_isCheckedCreate == false)
@@ -39,7 +38,6 @@ namespace MessangersUI.Sqlite.CreateTable
 
         public async Task<bool> CreateTableUserContacts()
         {
-            MessageBox.Show("Создание таблицы ContactsBase");
             SQLiteConnection connection = null;
             try
             {
@@ -47,16 +45,14 @@ namespace MessangersUI.Sqlite.CreateTable
 
                 string command = "CREATE TABLE IF NOT EXISTS ContactsBase (" +
                     "Id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "User TEXT NOT NULL," +
                     "Login TEXT NOT NULL, " +
                     "Date TEXT NOT NULL, " +
                     "PHOTO TEXT)";
 
-                MessageBox.Show("Выполнение SQL: " + command);
-
                 await using (var sqlcommand = new SQLiteCommand(command, connection))
                 {
                     await sqlcommand.ExecuteNonQueryAsync().ConfigureAwait(false);
-                    MessageBox.Show("Таблица ContactsBase успешно создана!");
                     return true;
                 }
             }

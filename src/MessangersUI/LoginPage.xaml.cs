@@ -7,7 +7,9 @@ using MessangersUI.HttpPostReuest;
 using MessangersUI.Notifications;
 using MessangersUI.Sqlite;
 using MessangersUI.Sqlite.CreateTable;
+using MessangersUI.Sqlite.DeleteUser;
 using MessangersUI.Sqlite.InsertMethods;
+using MessangersUI.Sqlite.SelectMethods;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -41,8 +43,10 @@ namespace MessangersUI
         public ILogger<PingRequestServerMessang> _loggerpingMyserver;
         public ILogger<RequesetInfoProviders> _RequesetInfoProviderslogger;
         public ILogger<InsertContacts> _loggerinsert;
+        public ILogger<SelectContacts> _loggercontacts;
         public ILogger<SearchUserPost> _loggersearchuser;
         public ILogger<Create> _loggercreate;
+        public ILogger<Delete> _deletelogger;
         public PostRegisterRequest _PostRegisterRequest;
         public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
@@ -70,6 +74,8 @@ namespace MessangersUI
         public SearchUserPost _sarcuuser;
         public Create _create;
         public InsertContacts _insertContacts;
+        public SelectContacts _selectContacts;
+        public Delete _delete;
 
         string Login = "";
         string Password = "";
@@ -102,6 +108,8 @@ namespace MessangersUI
             _loggercreate = loggerFactory.CreateLogger<Create>();
             _loggerpool = loggerFactory.CreateLogger<PoolSQLite>();
             _loggerinsert = loggerFactory.CreateLogger<InsertContacts>();
+            _loggercontacts = loggerFactory.CreateLogger<SelectContacts>();
+            _deletelogger = loggerFactory.CreateLogger<Delete>();
 
 
             var services = new ServiceCollection();
@@ -160,6 +168,10 @@ namespace MessangersUI
 
             _insertContacts = new InsertContacts(_loggerinsert, _sqlitepool);
 
+            _selectContacts = new SelectContacts(_loggercontacts, _sqlitepool, _memoryCache);
+
+            _delete = new Delete(_deletelogger, _sqlitepool);
+
             CreateBase();
         }
         public async Task<List<DataLogin>> RequestLogin()
@@ -199,7 +211,9 @@ namespace MessangersUI
                                 _pingRequestServerMessang,
                                 _sarcuuser,
                                 _create,
-                                _insertContacts);
+                                _insertContacts,
+                                _selectContacts,
+                                _delete);
                             _MainWindow.Show();
                             Window windowToClose = (Window)this.Parent;
                             windowToClose?.Close();
@@ -245,7 +259,14 @@ namespace MessangersUI
         }
         public async Task CreateBase()
         {
-           await _create.Proverka();
+            try
+            {
+                await _create.Proverka();
+            }
+            catch(Exception ex)
+            {
+                await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show(ex.Message));
+            }
         }
         private async void Button_Click_2(object sender, RoutedEventArgs e)
         {
