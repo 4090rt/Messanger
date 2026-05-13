@@ -3,13 +3,16 @@ using Messangers.DeserializeRequestHttp;
 using Messangers.EthernetRequest;
 using Messangers.JWToken;
 using Messangers.SignalSettings.Hubs;
-using Messangers.SQLite.CreateDataBases;
-using Messangers.SQLite.InithilizateDataBaseCreate;
-using Messangers.SQLite.PoolSQLiteConnection;
-using Messangers.SQLite.RequestRegisterAndLogin;
-using Messangers.SQLite.UserLoginCheck;
+using Messangers.SQLite.ContactBse.DeleteContact;
+using Messangers.SQLite.ContactBse.UserSave;
+using Messangers.SQLite.ContactBse.UserSearchContact;
+using Messangers.SQLite.ContactBse.UserSerach;
+using Messangers.SQLite.DataBaseCreatesTables.CreateDataBases;
+using Messangers.SQLite.DataBaseCreatesTables.InithilizateDataBaseCreate;
+using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
 using Messangers.SQLite.UserProviderInsert;
-using Messangers.SQLite.UserSerach;
+using Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegisterAndLogin;
+using Messangers.SQLite.ValidationAndRegistrationUserRequest.UserLoginCheck;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Logging;
@@ -86,6 +89,9 @@ builder.Services.AddScoped<RequesetInfoProviders>();
 builder.Services.AddScoped<Deserialize>();
 builder.Services.AddScoped<InsertProvider>();
 builder.Services.AddScoped<Search>();
+builder.Services.AddScoped<SaveClass>();
+builder.Services.AddScoped<UserSearchContacts>();
+builder.Services.AddScoped<DeleteContact>();
 
 // 2. Настройка конфигурации
 builder.Configuration

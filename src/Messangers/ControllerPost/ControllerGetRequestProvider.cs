@@ -1,7 +1,7 @@
 ﻿using Messangers.Delegate;
 using Messangers.EthernetRequest;
-using Messangers.SQLite.PoolSQLiteConnection;
-using Messangers.SQLite.RequestRegisterAndLogin;
+using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
+using Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegisterAndLogin;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Mvc;

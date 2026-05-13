@@ -1,8 +1,8 @@
 ﻿using Messangers.Delegate;
 using Messangers.ModelData;
-using Messangers.SQLite.PoolSQLiteConnection;
-using Messangers.SQLite.RequestRegisterAndLogin;
-using Messangers.SQLite.UserLoginCheck;
+using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
+using Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegisterAndLogin;
+using Messangers.SQLite.ValidationAndRegistrationUserRequest.UserLoginCheck;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Mvc;
 namespace Messangers.ControllerPost

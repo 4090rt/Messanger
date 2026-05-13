@@ -1,4 +1,4 @@
-﻿using Messangers.SQLite.UserSerach;
+﻿using Messangers.SQLite.ContactBse.UserSerach;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Messangers.ControllerPost

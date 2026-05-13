@@ -1,6 +1,6 @@
 ﻿using Messangers.JWToken;
 using Messangers.ModelData;
-using Messangers.SQLite.UserLoginCheck;
+using Messangers.SQLite.ValidationAndRegistrationUserRequest.UserLoginCheck;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
