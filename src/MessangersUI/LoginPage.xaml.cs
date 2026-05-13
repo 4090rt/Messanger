@@ -5,11 +5,6 @@ using MessangersUI.HasihingPass;
 using MessangersUI.HttpGetRequest;
 using MessangersUI.HttpPostReuest;
 using MessangersUI.Notifications;
-using MessangersUI.Sqlite;
-using MessangersUI.Sqlite.CreateTable;
-using MessangersUI.Sqlite.DeleteUser;
-using MessangersUI.Sqlite.InsertMethods;
-using MessangersUI.Sqlite.SelectMethods;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -42,19 +37,15 @@ namespace MessangersUI
         public ILogger<PostProviderClient> _postproviderlogger;
         public ILogger<PingRequestServerMessang> _loggerpingMyserver;
         public ILogger<RequesetInfoProviders> _RequesetInfoProviderslogger;
-        public ILogger<InsertContacts> _loggerinsert;
-        public ILogger<SelectContacts> _loggercontacts;
         public ILogger<SearchUserPost> _loggersearchuser;
-        public ILogger<Create> _loggercreate;
-        public ILogger<Delete> _deletelogger;
-        public PostRegisterRequest _PostRegisterRequest;
+        public ILogger<PostRequestContacts> _postloggercontacts;
+        public ILogger<PostRequestUserContactList> _PostRequestUserContactListlogger;
+        public PostRegisterRequest _PostRegisterRequest; 
         public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
         public CancellationTokenSource _source;
         public CancellationToken _CancellationToken;
         public MainWindow _MainWindow;
-        public PoolSQLite _sqlitepool;
-        public ILogger<PoolSQLite> _loggerpool;
         private readonly ILogger<PostLoginRequest> _loggerlog;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly HttpExceptionDelegate _httpExceptionDelegate;
@@ -72,11 +63,8 @@ namespace MessangersUI
         private readonly IMemoryCache _memoryCache;
         private readonly PingRequestServerMessang _pingRequestServerMessang;
         public SearchUserPost _sarcuuser;
-        public Create _create;
-        public InsertContacts _insertContacts;
-        public SelectContacts _selectContacts;
-        public Delete _delete;
-
+        public PostRequestContacts _postRequestContacts;
+        public PostRequestUserContactList _PostRequestUserContactList;
         string Login = "";
         string Password = "";
         List<DataLogin> datalist = new List<DataLogin>();
@@ -105,11 +93,8 @@ namespace MessangersUI
             _RequesetInfoProviderslogger = loggerFactory.CreateLogger<RequesetInfoProviders>();
             _loggerpingMyserver = loggerFactory.CreateLogger<PingRequestServerMessang>();
             _loggersearchuser = loggerFactory.CreateLogger<SearchUserPost>();
-            _loggercreate = loggerFactory.CreateLogger<Create>();
-            _loggerpool = loggerFactory.CreateLogger<PoolSQLite>();
-            _loggerinsert = loggerFactory.CreateLogger<InsertContacts>();
-            _loggercontacts = loggerFactory.CreateLogger<SelectContacts>();
-            _deletelogger = loggerFactory.CreateLogger<Delete>();
+            _postloggercontacts = loggerFactory.CreateLogger<PostRequestContacts>();
+            _PostRequestUserContactListlogger = loggerFactory.CreateLogger<PostRequestUserContactList>();
 
 
             var services = new ServiceCollection();
@@ -162,17 +147,21 @@ namespace MessangersUI
                 _httpExceptionDelegate,
                 _taskCanccelException);
 
-            _sqlitepool = new PoolSQLite(_loggerpool, _exceptionDelegate);
 
-            _create = new Create(_loggercreate, _sqlitepool, _exceptionDelegate);
+            _postRequestContacts = new PostRequestContacts(_postloggercontacts, 
+                _httpClientFactory, 
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate, 
+                _taskCanccelException);
 
-            _insertContacts = new InsertContacts(_loggerinsert, _sqlitepool);
+            _PostRequestUserContactList = new PostRequestUserContactList(_PostRequestUserContactListlogger,
+                _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
 
-            _selectContacts = new SelectContacts(_loggercontacts, _sqlitepool, _memoryCache);
-
-            _delete = new Delete(_deletelogger, _sqlitepool);
-
-            CreateBase();
         }
         public async Task<List<DataLogin>> RequestLogin()
         {
@@ -210,10 +199,8 @@ namespace MessangersUI
                                 _RequestProviderClient,
                                 _pingRequestServerMessang,
                                 _sarcuuser,
-                                _create,
-                                _insertContacts,
-                                _selectContacts,
-                                _delete);
+                                _postRequestContacts,
+                                _PostRequestUserContactList);
                             _MainWindow.Show();
                             Window windowToClose = (Window)this.Parent;
                             windowToClose?.Close();
@@ -255,17 +242,6 @@ namespace MessangersUI
                     _source.Dispose();
                     _source = null;
                 }
-            }
-        }
-        public async Task CreateBase()
-        {
-            try
-            {
-                await _create.Proverka();
-            }
-            catch(Exception ex)
-            {
-                await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show(ex.Message));
             }
         }
         private async void Button_Click_2(object sender, RoutedEventArgs e)

@@ -60,13 +60,11 @@ namespace MessangersUI.HttpPostReuest
 
                     if (properties1 == "true")
                     {
-                        MessageBox.Show("Вернул тру");
                         return true;
                     }
                     else
                     {
                         MessageBox.Show(properties2);
-                        MessageBox.Show("Вернул фолс");
                         return false;
                     }
                 }

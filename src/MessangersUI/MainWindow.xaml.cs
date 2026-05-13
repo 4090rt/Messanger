@@ -3,10 +3,6 @@ using MessangersUI.DataModel;
 using MessangersUI.HttpGetRequest;
 using MessangersUI.HttpPostReuest;
 using MessangersUI.Notifications;
-using MessangersUI.Sqlite.CreateTable;
-using MessangersUI.Sqlite.DeleteUser;
-using MessangersUI.Sqlite.InsertMethods;
-using MessangersUI.Sqlite.SelectMethods;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.VisualBasic.ApplicationServices;
@@ -40,10 +36,9 @@ namespace MessangersUI
         public RequesetInfoProviders _RequestProviderClient;
         public PingRequestServerMessang _PingRequestServerMessang;
         public SearchUserPost _searchuser;
-        public Create _create;
-        public InsertContacts _insertContacts;
-        public SelectContacts _selectcontacts;
-        public Delete _delete;
+        public PostRequestUserContactList _PostRequestUserContactList;
+
+        public PostRequestContacts _postRequestContacts;
          
         private readonly string _authToken;
         private readonly string _username;
@@ -51,8 +46,7 @@ namespace MessangersUI
         public MainWindow(string authToken, string username, GetRequestPing getRequestPing, 
             HttpGetRequestProvider httpGetRequestProvider, PostProviderClient postProviderClient, 
             RequesetInfoProviders RequestProviderClient, PingRequestServerMessang pingRequestServerMessang,
-            SearchUserPost searchUserPost, Create create, InsertContacts insertContacts, SelectContacts selectContacts,
-            Delete delete)
+            SearchUserPost searchUserPost, PostRequestContacts postRequestContacts, PostRequestUserContactList postRequestUserContactList)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -67,10 +61,8 @@ namespace MessangersUI
             gg();
            _PingRequestServerMessang = pingRequestServerMessang;
             _searchuser = searchUserPost;
-            _create = create;
-            _insertContacts = insertContacts;
-            _selectcontacts = selectContacts;
-            _delete = delete;
+            _postRequestContacts = postRequestContacts;
+            _PostRequestUserContactList = postRequestUserContactList;
             UIFace();
         }
         private HubConnection? _connection;
@@ -164,14 +156,22 @@ namespace MessangersUI
                         string username = TextName.Text;
                         var resultauserseRCH = await _searchuser.Request(username);
                         if (resultauserseRCH == true)
-                        {
-                            DateTime date = DateTime.Now;
+                        {  DateTime date = DateTime.Now;
+                          
                             string photo = "";
 
-                            bool saved = await _insertContacts.SaveContact(_username,username, date, photo);
+                            List<UserContact> user = new List<UserContact>
+                            {
+                                new UserContact
+                                {
+                                    Name = _username,
+                                    Username = username,
+                                    photo = photo,
+                                }
+                            };
+                            bool saved = await _postRequestContacts.Request(user);
                             if (saved)
                             {
-                                System.Windows.MessageBox.Show("Сохранено");
                                 NewUser(username);
                             }
                             else
@@ -214,8 +214,8 @@ namespace MessangersUI
         {
             try
             {
-                List<UserContact> list = await _selectcontacts.CacheRequest(_username);
-                return list;
+                var result = await _PostRequestUserContactList.RequestPost(_username);
+                return result;
             }
             catch (Exception ex)
             {
@@ -280,7 +280,7 @@ namespace MessangersUI
             "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                     {
                         UsersStackPanel.Children.Remove(userPanel);
-                        await _delete.DeleteMethod(_username, user);
+                        // запрос удаления контакта pOST
                     }
                     if (System.Windows.MessageBox.Show($"Удалить контакт {user}?",
 "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.No)
@@ -322,7 +322,7 @@ namespace MessangersUI
                             Orientation = System.Windows.Controls.Orientation.Horizontal,
                             Margin = new Thickness(10),
                             Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 40)),
-                            Tag = contact.Username
+                            Tag = contact.Name
                         };
 
                         Border circle = new Border
@@ -336,7 +336,7 @@ namespace MessangersUI
 
                         TextBlock initials = new TextBlock
                         {
-                            Text = contact.Username.ToString().ToUpper(),
+                            Text = contact.Name.ToString().ToUpper(),
                             Foreground = System.Windows.Media.Brushes.White,
                             FontSize = 20,
                             HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
@@ -346,7 +346,7 @@ namespace MessangersUI
 
                         TextBlock name = new TextBlock
                         {
-                            Text = contact.Username,
+                            Text = contact.Name,
                             Foreground = System.Windows.Media.Brushes.White,
                             FontSize = 16,
                             VerticalAlignment = VerticalAlignment.Center,
@@ -369,7 +369,7 @@ namespace MessangersUI
                             if (System.Windows.MessageBox.Show($"Удалить контакт {contact.Username}?",
                     "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                                 UsersStackPanel.Children.Remove(userPanel);
-                            await _delete.DeleteMethod(_username, contact.Username);
+                           // удаление кнотакта POST
                         };
 
                         userPanel.Children.Add(circle);

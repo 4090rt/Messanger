@@ -135,7 +135,6 @@ namespace Messangers.EthernetRequest
         {
             try
             {
-                System.Windows.MessageBox.Show("нАЧИНАЮ ЗАПРОС");
                 var client = _httpClientFactory.CreateClient("Client1Http2.0");
 
                 var options = new HttpRequestMessage(HttpMethod.Get, "https://ipinfo.io/json")

@@ -33,7 +33,7 @@ namespace MessangersUI.HttpPostReuest
             _taskCanccelException = taskCanccelException;
         }
 
-        public async Task<(bool, string)> Request(List<UserContact> list)
+        public async Task<bool> Request(List<UserContact> list)
         {
             try
             {
@@ -48,20 +48,24 @@ namespace MessangersUI.HttpPostReuest
                 var contactData = list.FirstOrDefault();
                 if (contactData == null)
                 {
-                    return (false, "Нет данных для отправки");
+                    return false;
                 }
 
-                var modeltosend = new
+                var modeltosend = new[]
                 {
-                    UserName = contactData.Name,
-                    Usercontact = contactData.Username,
-                    Pohto = contactData.photo
+                    new UserContact
+                    {
+                        Username = contactData.Name,
+                        Name = contactData.Username,
+                        photo = contactData.photo
+                    }
                 };
 
                 var jsonserialiser = JsonSerializer.Serialize(modeltosend, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });
+
 
                 var content = new StringContent(jsonserialiser, Encoding.UTF8, "application/json");
 
@@ -72,39 +76,43 @@ namespace MessangersUI.HttpPostReuest
                 {
                     string result = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var json = JsonDocument.Parse(result);
-                    var properties1 = json.RootElement.GetProperty("message").ToString() ?? string.Empty;
-                    var properties2 = json.RootElement.GetProperty("state").ToString() ?? string.Empty;
-                    return (true, properties1);
+                    var root = json.RootElement;
+                    string message = root.TryGetProperty("message", out var msgProp) ? msgProp.GetString() : "Нет сообщения";
+                    string state = root.TryGetProperty("state", out var stateProp) ? stateProp.GetString() : "Нет состояния";
+                    return true;
                 }
                 else
                 {
                     string result = await response.Content.ReadAsStringAsync();
                     var json = JsonDocument.Parse(result);
-                    var properties1 = json.RootElement.GetProperty("message").ToString() ?? string.Empty;
-                    System.Windows.MessageBox.Show($"❌ Ошибка {response.StatusCode}: {properties1}");
-                    _logger.LogError($"❌ Ошибка {response.StatusCode}: {properties1}");
-                    return (false, properties1);
+                    var root = json.RootElement;
+                    string message = root.TryGetProperty("message", out var msgProp) ? msgProp.GetString() : "Нет сообщения";
+                    string state = root.TryGetProperty("state", out var stateProp) ? stateProp.GetString() : "Нет состояния";
+                    System.Windows.MessageBox.Show($"❌ Ошибка {response.StatusCode}: {message}");
+                    _logger.LogError($"❌ Ошибка {response.StatusCode}: {message}");
+                    return false;
                 }
             }
             catch (TaskCanceledException ex)
             {
                 await _taskCanccelException.RunDelegate(_taskCanccelException.Delegate, ex);
-                return (false, ex.Message);
+                return false;
             }
             catch (JsonException ex)
             {
                 await _jsonExceptionDelegate.RunDelegate(_jsonExceptionDelegate.Delegate, ex);
-                return (false, ex.Message);
+                return false;
             }
             catch (HttpRequestException ex)
             {
                 await _httpExceptionDelegate.RunDelegate(_httpExceptionDelegate.Delegate, ex);
-                return (false, ex.Message);
+                return false;
             }
             catch (Exception ex)
             {
+                MessageBox.Show(ex.Message + ex.InnerException);
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
-                return (false, ex.Message);
+                return false;
             }
         }
     }
