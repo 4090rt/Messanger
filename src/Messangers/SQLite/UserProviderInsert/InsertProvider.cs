@@ -1,7 +1,6 @@
 ﻿using Messangers.Delegate;
 using Messangers.ModelData;
-using Messangers.SQLite.PoolSQLiteConnection;
-using Messangers.SQLite.RequestRegisterAndLogin;
+using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
 using MessangersUI.Delegate;
 using System.Data.SQLite;
 
