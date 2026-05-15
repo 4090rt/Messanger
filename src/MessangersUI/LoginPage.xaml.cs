@@ -43,6 +43,7 @@ namespace MessangersUI
         public ILogger<PostRequestContacts> _postloggercontacts;
         public ILogger<PostRequestUserContactList> _PostRequestUserContactListlogger;
         public ILogger<HttpPostRequestValidationContact> _loggervalidcontact;
+        public ILogger<PostRequestCount> _loggercountcon;
         public PostRegisterRequest _PostRegisterRequest;
         public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
         public ExceptionDelegate _exceptionDelegate;
@@ -71,6 +72,7 @@ namespace MessangersUI
         public PostRequestUserContactList _PostRequestUserContactList;
         public PostRequestDeleteContact _deleteContact;
         public HttpPostRequestValidationContact _postRequestValidationContact;
+        public PostRequestCount _postRequestCount;
         string Login = "";
         string Password = "";
         List<DataLogin> datalist = new List<DataLogin>();
@@ -103,6 +105,7 @@ namespace MessangersUI
             _PostRequestUserContactListlogger = loggerFactory.CreateLogger<PostRequestUserContactList>();
             _loggerdeletecontact = loggerFactory.CreateLogger<PostRequestDeleteContact>();
             _loggervalidcontact = loggerFactory.CreateLogger<HttpPostRequestValidationContact>();
+            _loggercountcon = loggerFactory.CreateLogger<PostRequestCount>();
 
 
             var services = new ServiceCollection();
@@ -184,6 +187,13 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _postRequestCount = new PostRequestCount(_loggercountcon,
+                 _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
         }
         public async Task<List<DataLogin>> RequestLogin()
         {
@@ -224,7 +234,8 @@ namespace MessangersUI
                                 _postRequestContacts,
                                 _PostRequestUserContactList,
                                 _deleteContact,
-                                _postRequestValidationContact);
+                                _postRequestValidationContact,
+                                _postRequestCount);
                             _MainWindow.Show();
                             Window windowToClose = (Window)this.Parent;
                             windowToClose?.Close();

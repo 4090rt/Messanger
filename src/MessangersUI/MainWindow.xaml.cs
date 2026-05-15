@@ -41,6 +41,7 @@ namespace MessangersUI
         public PostRequestUserContactList _PostRequestUserContactList;
         public PostRequestDeleteContact _deleteContact;
         public HttpPostRequestValidationContact _httpPostRequestValidationContact;
+        public PostRequestCount _PostRequestCount;
 
         public PostRequestContacts _postRequestContacts;
          
@@ -51,7 +52,8 @@ namespace MessangersUI
             HttpGetRequestProvider httpGetRequestProvider, PostProviderClient postProviderClient,
             RequesetInfoProviders RequestProviderClient, PingRequestServerMessang pingRequestServerMessang,
             SearchUserPost searchUserPost, PostRequestContacts postRequestContacts, PostRequestUserContactList postRequestUserContactList, 
-            PostRequestDeleteContact deleteContact, HttpPostRequestValidationContact httpPostRequestValidationContact)
+            PostRequestDeleteContact deleteContact, HttpPostRequestValidationContact httpPostRequestValidationContact,
+            PostRequestCount postRequestCount)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -71,6 +73,7 @@ namespace MessangersUI
             UIFace();
             _deleteContact = deleteContact;
             _httpPostRequestValidationContact = httpPostRequestValidationContact;
+            _PostRequestCount = postRequestCount;
         }
         private HubConnection? _connection;
         public async void gg()
@@ -196,6 +199,8 @@ namespace MessangersUI
                                 bool saved = await _postRequestContacts.Request(user);
                                 if (saved)
                                 {
+                                    string result = await _PostRequestCount.RequestPost(_username);
+                                    LabelCount.Content = result;
                                     NewUser(username);
                                 }
                                 else
@@ -252,6 +257,7 @@ namespace MessangersUI
         {
             Dispatcher.Invoke(() =>
             {
+
                 StackPanel userPanel = new StackPanel
                 {
                     Orientation = System.Windows.Controls.Orientation.Horizontal,
@@ -329,6 +335,10 @@ namespace MessangersUI
                     return;
                 }
             });
+
+            string result = await _PostRequestCount.RequestPost(_username);
+            LabelCount.Content = result;
+
             List<UserContact> list = await BaseContacts();
             await Dispatcher.InvokeAsync(() =>
             {
@@ -384,12 +394,28 @@ namespace MessangersUI
                             Tag = contact.Username
                         };
 
+                        System.Windows.Controls.Button chatbutton = new System.Windows.Controls.Button
+                        {
+                            Content = "Chat",
+
+                            Background = System.Windows.Media.Brushes.Green,
+                            Foreground = System.Windows.Media.Brushes.White,
+                            Width = 30,
+                            Height = 60,
+                            Margin = new Thickness(10, 0, 0, 0),
+                        };
+
                         deleteBtn.Click += async (s, e) =>
                         {
                             if (System.Windows.MessageBox.Show($"Удалить контакт {contact.Name}?",
                     "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                                 UsersStackPanel.Children.Remove(userPanel);
                             await _deleteContact.Request(_username, contact.Name);
+                        };
+
+                        chatbutton.Click += async (s, e) =>
+                        {
+
                         };
 
                         userPanel.Children.Add(circle);
