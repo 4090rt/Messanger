@@ -1,7 +1,7 @@
 ﻿using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
-using MessangersUI.HttpPostReuest;
+using MessangersUI.HttpReuest.PostRequestLoginAndRegister;
 using MessangersUI.HTTPSetthings;
 using MessangersUI.Notifications;
 using Microsoft.Extensions.DependencyInjection;
@@ -86,8 +86,8 @@ namespace MessangersUI
             try
             {
                 Login = TextLogin.Text;
-                Password = TextPassword.Text;
-                RepeatPassword = TextPasswordRepeat.Text;
+                Password = TextPassword.Password;
+                RepeatPassword = TextPasswordRepeat.Password;
                 List<DataRegistr> datalist = new List<DataRegistr>();
 
                 if (Login.Length > 3 && Password.Length > 8 && RepeatPassword.Length > 8)
@@ -115,7 +115,6 @@ namespace MessangersUI
 
                         datalist.Add(result);
                         await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Регистрирую.."));
-                        await Task.Delay(4000, _CancellationToken);
                         var resultat = await _PostRegisterRequest.RequestMETHOD(datalist, _CancellationToken).ConfigureAwait(false);
 
                         if (resultat.succes == true)
@@ -174,7 +173,6 @@ namespace MessangersUI
 
         private void Button_Click_2(object sender, RoutedEventArgs e)
         {
-            // Простой переход на LoginPage
             NavigationService?.Navigate(new LoginPage());
         }
     }

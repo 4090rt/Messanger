@@ -3,7 +3,9 @@ using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
 using MessangersUI.HttpGetRequest;
-using MessangersUI.HttpPostReuest;
+using MessangersUI.HttpReuest.PostRequestContact;
+using MessangersUI.HttpReuest.PostRequestEthernetStat;
+using MessangersUI.HttpReuest.PostRequestLoginAndRegister;
 using MessangersUI.Notifications;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
@@ -40,7 +42,9 @@ namespace MessangersUI
         public ILogger<SearchUserPost> _loggersearchuser;
         public ILogger<PostRequestContacts> _postloggercontacts;
         public ILogger<PostRequestUserContactList> _PostRequestUserContactListlogger;
-        public PostRegisterRequest _PostRegisterRequest; 
+        public ILogger<HttpPostRequestValidationContact> _loggervalidcontact;
+        public PostRegisterRequest _PostRegisterRequest;
+        public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
         public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
         public CancellationTokenSource _source;
@@ -65,6 +69,8 @@ namespace MessangersUI
         public SearchUserPost _sarcuuser;
         public PostRequestContacts _postRequestContacts;
         public PostRequestUserContactList _PostRequestUserContactList;
+        public PostRequestDeleteContact _deleteContact;
+        public HttpPostRequestValidationContact _postRequestValidationContact;
         string Login = "";
         string Password = "";
         List<DataLogin> datalist = new List<DataLogin>();
@@ -95,6 +101,8 @@ namespace MessangersUI
             _loggersearchuser = loggerFactory.CreateLogger<SearchUserPost>();
             _postloggercontacts = loggerFactory.CreateLogger<PostRequestContacts>();
             _PostRequestUserContactListlogger = loggerFactory.CreateLogger<PostRequestUserContactList>();
+            _loggerdeletecontact = loggerFactory.CreateLogger<PostRequestDeleteContact>();
+            _loggervalidcontact = loggerFactory.CreateLogger<HttpPostRequestValidationContact>();
 
 
             var services = new ServiceCollection();
@@ -162,13 +170,27 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _deleteContact = new PostRequestDeleteContact(_loggerdeletecontact,
+                _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+            _postRequestValidationContact = new HttpPostRequestValidationContact(_loggervalidcontact,
+                 _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
         }
         public async Task<List<DataLogin>> RequestLogin()
         {
             try
             {
                 Login = TextLogin.Text;
-                Password = TextPassword.Text;
+                Password = TextPassword.Password;
                 if (Login != null && Password != null)
                 {
                     _source = new CancellationTokenSource();
@@ -200,7 +222,9 @@ namespace MessangersUI
                                 _pingRequestServerMessang,
                                 _sarcuuser,
                                 _postRequestContacts,
-                                _PostRequestUserContactList);
+                                _PostRequestUserContactList,
+                                _deleteContact,
+                                _postRequestValidationContact);
                             _MainWindow.Show();
                             Window windowToClose = (Window)this.Parent;
                             windowToClose?.Close();
