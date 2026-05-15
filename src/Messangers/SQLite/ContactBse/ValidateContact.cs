@@ -169,11 +169,13 @@ namespace Messangers.SQLite.ContactBse
             catch (SQLiteException ex)
             {
                 await _sQLiteExceptionDelegate.RunDelegate(_sQLiteExceptionDelegate.Delegate, ex);
+                await (transaction.RollbackAsync() ?? Task.CompletedTask);
                 return "";
             }
             catch (Exception ex)
             {
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
+                await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 return "";
             }
             finally

@@ -4,6 +4,7 @@ using Messangers.EthernetRequest;
 using Messangers.JWToken;
 using Messangers.SignalSettings.Hubs;
 using Messangers.SQLite.ContactBse;
+using Messangers.SQLite.ContactBse.CountOfUserVidget;
 using Messangers.SQLite.ContactBse.DeleteContact;
 using Messangers.SQLite.ContactBse.UserSave;
 using Messangers.SQLite.ContactBse.UserSearchContact;
@@ -94,6 +95,7 @@ builder.Services.AddScoped<SaveClass>();
 builder.Services.AddScoped<UserSearchContacts>();
 builder.Services.AddScoped<DeleteContact>();
 builder.Services.AddScoped<ValidateContact>();
+builder.Services.AddScoped<CountUser>();
 
 // 2. Настройка конфигурации
 builder.Configuration
