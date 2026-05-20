@@ -1,6 +1,6 @@
 ﻿using Messangers.Delegate;
 using Messangers.ModelData;
-using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
+using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegisterAndLogin;
 using MessangersUI.DataModel;
 using MessangersUI.Delegate;
@@ -11,7 +11,7 @@ namespace Messangers.SQLite.ContactBse.UserSave
     public class SaveClass
     {
         private readonly ILogger<SaveClass> _logger;
-        private readonly PoolSQLite _poolSQLiteConnection;
+        private readonly PoolSQLite  _poolSQLiteConnection;
         private readonly SQLiteExceptionDelegate _sQLiteExceptionDelegate;
         private readonly ExceptionDelegate _exceptionDelegate;
 

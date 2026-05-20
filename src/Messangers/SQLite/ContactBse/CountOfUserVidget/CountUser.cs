@@ -9,20 +9,26 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
     public class CountUser
     {
         private readonly ILogger<CountUser> _logger;
-        private readonly PoolSQLite _poolSQLiteConnection;
+        private readonly Messangers.SQLite.PoolSQLiteConnection.PoolSQLite _poolSQLite;
         private readonly SQLiteExceptionDelegate _sQLiteExceptionDelegate;
         private readonly ExceptionDelegate _exceptionDelegate;
         private bool _Is_chekedindex = false;
 
-        public CountUser(ILogger<CountUser> logger, PoolSQLite poolSQLiteConnection, SQLiteExceptionDelegate sQLiteExceptionDelegate, ExceptionDelegate exceptionDelegate, bool is_chekedindex)
+        public CountUser(ILogger<CountUser> logger, Messangers.SQLite.PoolSQLiteConnection.PoolSQLite poolSQLiteConnection, SQLiteExceptionDelegate sQLiteExceptionDelegate, ExceptionDelegate exceptionDelegate)
         {
             _logger = logger;
-            _poolSQLiteConnection = poolSQLiteConnection;
+            _poolSQLite = poolSQLiteConnection;
             _sQLiteExceptionDelegate = sQLiteExceptionDelegate;
             _exceptionDelegate = exceptionDelegate;
-            _Is_chekedindex = is_chekedindex;
 
-            Task.Run(async () => await Inithializate()).ConfigureAwait(false);
+            try
+            {
+                Task.Run(async () => await Inithializate()).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Ошибка инициализации CountUser");
+            }
         }
 
         public async Task Inithializate()
@@ -45,7 +51,8 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
             int count = 0;
             try
             {
-                connection = _poolSQLiteConnection.ConnectionOpen();
+                _logger.LogError(username);
+                connection = _poolSQLite.ConnectionOpen();
                 transaction = connection.BeginTransaction();
 
                 string command = "SELECT COUNT(*) FROM ContactUserBD WHERE Name = @N";
@@ -58,9 +65,9 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
 
                     int countr = Convert.ToInt32(result);
 
-                    if (count > 0)
+                    if (countr > 0)
                     {
-                         count = countr;
+                        count = countr;
                     }  
                     await transaction.CommitAsync().ConfigureAwait(false);  
                     return count;
@@ -82,7 +89,7 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
             {
                 if (connection != null)
                 {
-                    _poolSQLiteConnection.CloseConnection(connection);
+                    _poolSQLite.CloseConnection(connection);
                 }
                 if (transaction != null)
                 {
@@ -96,7 +103,7 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
             SQLiteConnection connection = null;
             try
             {
-                connection = _poolSQLiteConnection.ConnectionOpen();
+                connection = _poolSQLite.ConnectionOpen();
 
                 string command = "CREATE INDEX IF NOT EXISTS IX_ContactUserBDCountContacts ON ContactUserBD(Name)";
 
@@ -117,7 +124,7 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
             {
                 if (connection != null)
                 {
-                    _poolSQLiteConnection.CloseConnection(connection);
+                    _poolSQLite.CloseConnection(connection);
                 }
             }
         }
@@ -127,7 +134,7 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
             SQLiteConnection connection = null;
             try
             {
-                connection = _poolSQLiteConnection.ConnectionOpen();
+                connection = _poolSQLite.ConnectionOpen();
 
                 string command = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'IX_ContactUserBDCountContacts' AND tbl_name = 'ContactUserBD'";
 
@@ -163,7 +170,7 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
             {
                 if (connection != null)
                 {
-                    _poolSQLiteConnection.CloseConnection(connection);
+                    _poolSQLite.CloseConnection(connection);
                 }
             }
         }

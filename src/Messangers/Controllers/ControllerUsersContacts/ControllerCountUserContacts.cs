@@ -26,7 +26,7 @@ namespace Messangers.Controllers.ControllerUsersContacts
         public async Task<IActionResult> RequestController([FromBody] UserModel userModel)
         {
             string username = userModel.username;
-            if (userModel != null && string.IsNullOrEmpty(username))
+            if (userModel != null && !string.IsNullOrEmpty(username))
             {
                 int result = await _countUser.Count(username).ConfigureAwait(false);
                 if (result > 0)

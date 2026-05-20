@@ -1,6 +1,6 @@
 ﻿using Messangers.Delegate;
 using Messangers.SQLite.ContactBse.UserSearchContact;
-using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
+using Messangers.SQLite.PoolSQLiteConnection;
 using MessangersUI.Delegate;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.Caching.Memory;

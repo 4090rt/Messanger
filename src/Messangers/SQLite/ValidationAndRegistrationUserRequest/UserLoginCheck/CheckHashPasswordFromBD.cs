@@ -1,5 +1,5 @@
 ﻿using Messangers.Delegate;
-using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
+using Messangers.SQLite.PoolSQLiteConnection;
 using MessangersUI.Delegate;
 using System.Data.SQLite;
 

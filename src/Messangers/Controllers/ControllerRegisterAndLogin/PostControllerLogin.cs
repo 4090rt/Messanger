@@ -1,5 +1,6 @@
 ﻿using Messangers.JWToken;
 using Messangers.ModelData;
+using Messangers.SignalSettings.Hubs;
 using Messangers.SQLite.ValidationAndRegistrationUserRequest.UserLoginCheck;
 using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Identity.Data;
@@ -16,15 +17,16 @@ namespace Messangers.Controllers.ControllerRegisterAndLogin
         public CheckUserInBD _checkuser;
         public CheckHashPasswordFromBD _checkhashPassword;
         public JWTokenSettings _jwtSettings;
-
+        public SignalHub _signalHub;
         public PostControllerLogin (ILogger<PostControllerLogin> logger, ExceptionDelegate exceptionDelegate,
-            CheckUserInBD checkUserInBD, CheckHashPasswordFromBD checkhashPassword, JWTokenSettings jWTokenSettings)
+            CheckUserInBD checkUserInBD, CheckHashPasswordFromBD checkhashPassword, JWTokenSettings jWTokenSettings, SignalHub signalHub)
         {
             _logger = logger;
             _exceptionDelegate = exceptionDelegate;
             _checkuser = checkUserInBD;
             _checkhashPassword = checkhashPassword;
             _jwtSettings = jWTokenSettings;
+            _signalHub = signalHub;
         }
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] ModelDataLogin request)

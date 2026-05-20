@@ -2,6 +2,7 @@ using Messangers.Delegate;
 using Messangers.DeserializeRequestHttp;
 using Messangers.EthernetRequest;
 using Messangers.JWToken;
+using Messangers.ModelData;
 using Messangers.SignalSettings.Hubs;
 using Messangers.SQLite.ContactBse;
 using Messangers.SQLite.ContactBse.CountOfUserVidget;
@@ -11,7 +12,7 @@ using Messangers.SQLite.ContactBse.UserSearchContact;
 using Messangers.SQLite.ContactBse.UserSerach;
 using Messangers.SQLite.DataBaseCreatesTables.CreateDataBases;
 using Messangers.SQLite.DataBaseCreatesTables.InithilizateDataBaseCreate;
-using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
+using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.UserProviderInsert;
 using Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegisterAndLogin;
 using Messangers.SQLite.ValidationAndRegistrationUserRequest.UserLoginCheck;
@@ -96,6 +97,7 @@ builder.Services.AddScoped<UserSearchContacts>();
 builder.Services.AddScoped<DeleteContact>();
 builder.Services.AddScoped<ValidateContact>();
 builder.Services.AddScoped<CountUser>();
+builder.Services.AddScoped<SignalHub>();
 
 // 2. Настройка конфигурации
 builder.Configuration
@@ -123,6 +125,7 @@ using (var scope = app.Services.CreateScope())
     await inithializate.MethodCreateBase();
 }
 
+
 app.UseHttpsRedirection();
 app.UseRouting();
 app.UseAuthentication();
@@ -132,6 +135,7 @@ app.MapControllers();
 app.MapHub<SignalHub>("/chatHub");
 app.MapStaticAssets();
 app.MapRazorPages().WithStaticAssets();
+
 
 _ = Task.Run(async () =>
 {
@@ -176,6 +180,7 @@ _ = Task.Run(async () =>
         }
     }
 });
+
 // 6. Запуск (здесь сервер начинает слушать запросы)
 Console.WriteLine("Сервер успешно запущен!");
 app.Run();  // ? блокирует выполнение, сервер работает

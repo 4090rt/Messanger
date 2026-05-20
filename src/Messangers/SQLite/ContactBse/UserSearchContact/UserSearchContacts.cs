@@ -1,6 +1,6 @@
 ﻿using Messangers.Delegate;
 using Messangers.SQLite.ContactBse.UserSerach;
-using Messangers.SQLite.DataBaseCreatesTables.PoolSQLiteConnection;
+using Messangers.SQLite.PoolSQLiteConnection;
 using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using Microsoft.Extensions.Caching.Memory;
@@ -68,21 +68,23 @@ namespace Messangers.SQLite.ContactBse.UserSearchContact
 
                     while (await result.ReadAsync())
                         {
-                        string userName = result.IsDBNull(1) ? "" : result.GetString(1);
-                        _logger.LogWarning($"userName = '{userName}'");
+                        string contactName = result.IsDBNull(2) ? "" : result.GetString(2);
+                        _logger.LogWarning($"Имя контакта (индекс 2): '{contactName}'");
 
-                        string ConactName = result.IsDBNull(2) ? "" : result.GetString(2);
+                        string yourName = result.IsDBNull(1) ? "" : result.GetString(1);
+                        _logger.LogWarning($"Ваше имя (индекс 1): '{yourName}'");
 
-                        string Photo = result.IsDBNull(3) ? "" : result.GetString(3);
-;
+                        string photo = result.IsDBNull(3) ? "" : result.GetString(3);
+
                         UserContact userContact = new UserContact()
-                            {
-                                Username = userName,
-                                Name = ConactName,
-                                photo = Photo
-                            };
-                            userContactlist.Add(userContact);
+                        {
+                            Username = contactName,
+                            Name = yourName,  
+                            photo = photo
+                        };
+                        userContactlist.Add(userContact);
                         }
+
                 }
                 await transaction.CommitAsync().ConfigureAwait(false);
                 return userContactlist;
