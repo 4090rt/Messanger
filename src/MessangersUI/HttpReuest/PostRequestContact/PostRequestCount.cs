@@ -46,7 +46,6 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                     Version = HttpVersion.Version20,
                     VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
                 };
-
                 UserModel model = new UserModel()
                 { 
                     username = username,
@@ -56,12 +55,11 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                 { 
                     PropertyNameCaseInsensitive = true
                 });
-
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 options.Content = content;
-
                 HttpResponseMessage response = await connection.SendAsync(options).ConfigureAwait(false);
+
                 if (response.IsSuccessStatusCode)
                 {
                     var contentresponce = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -71,9 +69,11 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                     var propertiesState = root.GetProperty("state").GetRawText() ?? string.Empty;
                     var properiesCount = root.GetProperty("count").GetRawText() ?? string.Empty;
 
-                    if (propertiesState == "true")
+                    string trimprop = propertiesState.Trim('"');
+                    string trimpropcount = properiesCount.Trim('"');    
+                    if (trimprop == "true")
                     {
-                        return properiesCount;
+                        return trimpropcount;
                     }
                     else
                     {
@@ -82,12 +82,11 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                 }
                 else
                 {
+                    System.Windows.MessageBox.Show("2");
                     var contentresponce = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var jsonDOC = JsonDocument.Parse(contentresponce);
                     var root = jsonDOC.RootElement;
-
                     var properiesmessage = root.GetProperty("message").GetRawText() ?? string.Empty;
-
                     _logger.LogError($"Запрос Виджета колва контактов завершисля ошибкой {properiesmessage} статус код: {response.StatusCode}");
                     return "Увас нет контактов\nИли они не найдены";
                 }

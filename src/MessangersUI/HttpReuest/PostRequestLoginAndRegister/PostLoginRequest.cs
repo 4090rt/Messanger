@@ -72,7 +72,6 @@ namespace MessangersUI.HttpReuest.PostRequestLoginAndRegister
 
                 if (recpon.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("Успешно отправлено");
                     var responcontent = await recpon.Content.ReadAsStringAsync();
                     if (responcontent != null)
                     {

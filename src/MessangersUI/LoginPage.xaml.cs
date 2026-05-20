@@ -44,8 +44,10 @@ namespace MessangersUI
         public ILogger<PostRequestUserContactList> _PostRequestUserContactListlogger;
         public ILogger<HttpPostRequestValidationContact> _loggervalidcontact;
         public ILogger<PostRequestCount> _loggercountcon;
+        public ILogger<PostRequestOnlineUsersValidate> _loggervalidateonline;
         public PostRegisterRequest _PostRegisterRequest;
         public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
+        public ILogger<PostRequestOnlineUser> _loggeronlineuser;
         public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
         public CancellationTokenSource _source;
@@ -73,6 +75,8 @@ namespace MessangersUI
         public PostRequestDeleteContact _deleteContact;
         public HttpPostRequestValidationContact _postRequestValidationContact;
         public PostRequestCount _postRequestCount;
+        public PostRequestOnlineUsersValidate _postRequestOnlineUsersValidate;
+        public PostRequestOnlineUser _onlineUser;
         string Login = "";
         string Password = "";
         List<DataLogin> datalist = new List<DataLogin>();
@@ -106,6 +110,8 @@ namespace MessangersUI
             _loggerdeletecontact = loggerFactory.CreateLogger<PostRequestDeleteContact>();
             _loggervalidcontact = loggerFactory.CreateLogger<HttpPostRequestValidationContact>();
             _loggercountcon = loggerFactory.CreateLogger<PostRequestCount>();
+            _loggervalidateonline = loggerFactory.CreateLogger<PostRequestOnlineUsersValidate>();
+            _loggeronlineuser = loggerFactory.CreateLogger<PostRequestOnlineUser>();
 
 
             var services = new ServiceCollection();
@@ -194,6 +200,21 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _postRequestOnlineUsersValidate = new PostRequestOnlineUsersValidate(_loggervalidateonline, 
+                _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+            _onlineUser = new PostRequestOnlineUser(_loggeronlineuser,
+                _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _taskCanccelException,
+                _jsonExceptionDelegate);
+
+
         }
         public async Task<List<DataLogin>> RequestLogin()
         {
@@ -220,26 +241,35 @@ namespace MessangersUI
                     var result = await _postLoginRequest.Request(datalist).ConfigureAwait(false);
                     if (result.Succes == true)
                     {
-
-                        await Dispatcher.InvokeAsync(() =>
+                        bool resultvalidateonline = await _postRequestOnlineUsersValidate.RequestPost(Login);
+                        if (resultvalidateonline)
                         {
-                            _MainWindow = new MainWindow(result.token,
-                                result.username,
-                                _getRequestPing,
-                                _httpGetRequestProvider,
-                                _PostProviderClient, 
-                                _RequestProviderClient,
-                                _pingRequestServerMessang,
-                                _sarcuuser,
-                                _postRequestContacts,
-                                _PostRequestUserContactList,
-                                _deleteContact,
-                                _postRequestValidationContact,
-                                _postRequestCount);
-                            _MainWindow.Show();
-                            Window windowToClose = (Window)this.Parent;
-                            windowToClose?.Close();
-                        });
+                            await Dispatcher.InvokeAsync(() =>
+                            {
+                                _MainWindow = new MainWindow(result.token,
+                                    result.username,
+                                    _getRequestPing,
+                                    _httpGetRequestProvider,
+                                    _PostProviderClient,
+                                    _RequestProviderClient,
+                                    _pingRequestServerMessang,
+                                    _sarcuuser,
+                                    _postRequestContacts,
+                                    _PostRequestUserContactList,
+                                    _deleteContact,
+                                    _postRequestValidationContact,
+                                    _postRequestCount,
+                                    _onlineUser
+                                    );
+                                _MainWindow.Show();
+                                Window windowToClose = (Window)this.Parent;
+                                windowToClose?.Close();
+                            });
+                        }
+                        else
+                        {
+                            System.Windows.MessageBox.Show("Этот юзер уже онлайн");
+                        }
                     }
                     else
                     {
