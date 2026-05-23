@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Messangers.ModelData;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.Logging;
 using System.Collections.Concurrent;
 using System.IdentityModel.Tokens.Jwt;
@@ -25,6 +26,8 @@ namespace Messangers.SignalSettings.Hubs
                 _onlineUsers[username] = Context.ConnectionId;
                 _logger.LogInformation($"✅ {username} подключился. ConnectionId: {Context.ConnectionId}. Онлайн: {_onlineUsers.Count}");
                 Console.WriteLine($"✅ {username} подключился. ConnectionId: {Context.ConnectionId}. Онлайн: {_onlineUsers.Count}");
+
+                await Clients.All.SendAsync("UserConnect", username);
             }
             
             await base.OnConnectedAsync();
@@ -38,9 +41,59 @@ namespace Messangers.SignalSettings.Hubs
             {
                 _onlineUsers.Remove(user, out _);
                 Console.WriteLine($"❌ {user} отключился. Онлайн: {_onlineUsers.Count}");
+                await Clients.All.SendAsync("UserDisconnect", user);
             }
 
             await base.OnDisconnectedAsync(exception);
+        }
+
+        public async Task<bool> UserOnlineValidate(string username)
+        {
+            try
+            {
+                if (_onlineUsers.TryGetValue(username, out var result))
+                {
+                    return true;
+                }
+                else
+                { 
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Возникло исключение" + ex.Message + ex.InnerException + ex.StackTrace);
+                return false;
+            }
+        }
+
+        public async Task<List<DataUsersList>> UserOnline(List<DataUsersList> list)
+        {
+            try
+            {
+                List<DataUsersList> listresult = new List<DataUsersList>();
+                foreach(var item in list)
+                {
+                    if (_onlineUsers.TryGetValue(item.User, out var resultat))
+                    {
+                        var data = new DataUsersList
+                        {
+                            User = item.User
+                        };
+                        listresult.Add(data);
+                    }
+                }
+                foreach (var item in listresult)
+                {
+                    _logger.LogError("Вернул юзера2" + item.User);
+                }
+                return listresult;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError("Возникло исключение" + ex.Message + ex.InnerException + ex.StackTrace);
+                return new List<DataUsersList>();
+            }
         }
 
         public async Task SendMessage(string touser, string message)
@@ -57,6 +110,8 @@ namespace Messangers.SignalSettings.Hubs
             }
             else
             {
+                _logger.LogInformation($"Найден ConnectionId: {connectionId} для {touser}");
+                     _logger.LogInformation("Сообщение отправлено успешно!");
                 // реализация если пользователь оффлайн: оффлайн - нашли в бд - созранали сообщение
                 //отправили когда он появился онлайн
             }

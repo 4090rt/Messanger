@@ -2,6 +2,7 @@
 using Messangers.SignalSettings.Hubs;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace Messangers.Controllers.ControllerUsersContacts
 {
@@ -28,8 +29,8 @@ namespace Messangers.Controllers.ControllerUsersContacts
                     var result = await _signalhub.UserOnline(dataUsersLists).ConfigureAwait(false);
                     if (result != null)
                     {
-                        _logger.LogError($"!!!!!!!!!!!!!!!!{result.Count}");
-                        return Ok(new { message = result, state = "true"});
+                        var jsonString = JsonSerializer.Serialize(result);
+                        return Ok(jsonString);
                     }
                     else
                     {
