@@ -41,7 +41,6 @@ namespace MessangersUI.HttpReuest.PostRequestContact
         {
             try
             {
-                MessageBox.Show("В запросе");
                 var client = _httpClientFactory.CreateClient("Client1Http2.0");
 
                 var options = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7167/api/ControllerNewUserOnlineFirstAdd/ControolerOnlineFirstAddUser")
@@ -63,11 +62,9 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                 var content = new StringContent(jsonserialized, Encoding.UTF8, "application/json");
 
                 options.Content = content;
-                MessageBox.Show("отправляю");
                 HttpResponseMessage responseMessage = await client.SendAsync(options).ConfigureAwait(false);
                 if (responseMessage.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("Успешно");
                     var result = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var jsondoc = JsonDocument.Parse(result);
                     var root = jsondoc.RootElement;
@@ -89,7 +86,6 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                 }
                 else
                 {
-                    MessageBox.Show("Ошибка");
                     _logger.LogError("Запрос первого добавления юзера в контакты завершился ошибкой" + responseMessage.StatusCode);
 
                     var result = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);

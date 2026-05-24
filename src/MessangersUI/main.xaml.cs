@@ -24,10 +24,12 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Documents;
+using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+
 
 namespace MessangersUI
 {
@@ -44,6 +46,9 @@ namespace MessangersUI
 
         public ILogger<PostRequestSaveMessage> _loggersavemessage;
         public PostRequestSaveMessage _saveMessage;
+
+        public ILogger<PostRequestHistroyDowload> _loggerPostRequestHistroyDowload;
+        PostRequestHistroyDowload _PostRequestHistroyDowload;
 
 
         public ILogger<PostRequestAddFirstUserContact> _loggerPostRequestAddFirstUserContact;
@@ -95,6 +100,7 @@ namespace MessangersUI
         public main(HubConnection? hubconnection, string authtoken, string username, string user)
         {
             InitializeComponent();
+
             _hubConnection = hubconnection;
             _user = user;
             _authoken = authtoken;
@@ -128,6 +134,7 @@ namespace MessangersUI
             _loggeronlineuser = loggerFactory.CreateLogger<PostRequestOnlineUser>();
             _loggersavemessage = loggerFactory.CreateLogger<PostRequestSaveMessage>();
             _loggerPostRequestAddFirstUserContact = loggerFactory.CreateLogger<PostRequestAddFirstUserContact>();
+            _loggerPostRequestHistroyDowload = loggerFactory.CreateLogger<PostRequestHistroyDowload>();
 
 
             var services = new ServiceCollection();
@@ -244,6 +251,24 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _PostRequestHistroyDowload = new PostRequestHistroyDowload (_loggerPostRequestHistroyDowload,
+                 _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+            ChatUserName.Text = _user;
+            AddHistoryMessage(_username, _user);
+            MainMethod();
+        }
+
+        public async void MainMethod()
+        {
+            _hubConnection.On<string, string>("ReceiveMessage", async (fromUser, message) =>
+            {
+                AddMessage(fromUser, message, false);
+            });
         }
 
         private void MessageTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -264,13 +289,96 @@ namespace MessangersUI
         {
             string textMessage = MessageTextBox.Text;
             await _hubConnection.InvokeAsync("SendMessage", _user, textMessage);
-            var date = DateTime.Now.ToString();
-            System.Windows.MessageBox.Show("сОХРАНЯЮ");
+            var date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
             await _saveMessage.PostRequest(_username, _user, textMessage, date, "true");
             MessageTextBox.Clear();
             AddMessage(_username, textMessage, true);
         }
-        
+
+        public async Task AddHistoryMessage(string username, string user)
+        {
+            try
+            {
+                var result = await _PostRequestHistroyDowload.PostRequest(username, user);
+                if (result != null)
+                {
+                    var borders = new List<Border>();
+                    foreach (var item in result)
+                    {
+                        bool isMyMessage = item.LoginUser1 == username;
+                        borders.Add(CreateMessageBorder(item, isMyMessage));
+                    }
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        foreach (var border in borders)
+                        {
+                            MessagesItemsControl.Items.Add(border);
+                        }
+
+                        // Прокрутка вниз после добавления всех сообщений
+                        MessagesScrollViewer?.ScrollToBottom();
+                    });
+                }
+            }
+            catch(Exception ex)
+            {
+                System.Windows.MessageBox.Show("Возникло исключение" + ex.Message + ex.InnerException + ex.StackTrace);            
+            }
+        }
+
+
+        private Border CreateMessageBorder(MessageData item, bool isMyMessage)
+        {
+            var border = new Border
+            {
+                CornerRadius = new CornerRadius(15),
+                MaxWidth = 350,
+                HorizontalAlignment = isMyMessage
+                    ? System.Windows.HorizontalAlignment.Right
+                    : System.Windows.HorizontalAlignment.Left,
+                Background = isMyMessage
+                    ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(77, 108, 133))
+                    : new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 60)),
+                Margin = isMyMessage
+                    ? new Thickness(50, 5, 5, 10)
+                    : new Thickness(5, 5, 50, 10)
+            };
+
+            var panel = new StackPanel { Margin = new Thickness(12, 8, 12, 8) };
+
+            if (!isMyMessage)
+            {
+                panel.Children.Add(new TextBlock
+                {
+                    Text = item.LoginUser1,
+                    Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(180, 255, 255, 255)),
+                    FontSize = 10,
+                    Margin = new Thickness(0, 0, 0, 4)
+                });
+            }
+
+            panel.Children.Add(new TextBlock
+            {
+                Text = item.Message,
+                Foreground = System.Windows.Media.Brushes.White,
+                FontSize = 14,
+                TextWrapping = TextWrapping.Wrap
+            });
+
+            panel.Children.Add(new TextBlock
+            {
+                Text = DateTime.Parse(item.Date).ToLocalTime().ToString("HH:mm"),
+                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(180, 255, 255, 255)),
+                FontSize = 10,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+
+            border.Child = panel;
+            return border;
+        }
+
+
         public void AddMessage(string user, string message, bool isCurrentUser)
         {
             Dispatcher.Invoke(() =>
