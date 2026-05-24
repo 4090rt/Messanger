@@ -12,6 +12,7 @@ using Messangers.SQLite.ContactBse.UserSearchContact;
 using Messangers.SQLite.ContactBse.UserSerach;
 using Messangers.SQLite.DataBaseCreatesTables.CreateDataBases;
 using Messangers.SQLite.DataBaseCreatesTables.InithilizateDataBaseCreate;
+using Messangers.SQLite.HistroyMessage;
 using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.UserProviderInsert;
 using Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegisterAndLogin;
@@ -98,6 +99,7 @@ builder.Services.AddScoped<DeleteContact>();
 builder.Services.AddScoped<ValidateContact>();
 builder.Services.AddScoped<CountUser>();
 builder.Services.AddScoped<SignalHub>();
+builder.Services.AddScoped<SaveHistoryMessage>();
 
 // 2. Настройка конфигурации
 builder.Configuration

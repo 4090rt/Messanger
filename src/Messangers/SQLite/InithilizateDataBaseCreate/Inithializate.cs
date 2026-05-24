@@ -1,5 +1,5 @@
 ﻿using Messangers.Delegate;
-using Messangers.SQLite.CreateDataBases;
+using Messangers.SQLite.DataBaseCreatesTables.CreateDataBases;
 using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.RequestRegisterAndLogin;
 using MessangersUI.Delegate;
@@ -27,7 +27,7 @@ namespace Messangers.SQLite.InithilizateDataBaseCreate
 
         public async Task<bool> MethodCreateBase()
         {
-            _logger.LogWarning("Инициализация баз  RegisterBase, ProviderUserBase");
+            _logger.LogWarning("Инициализация баз  RegisterBase, ProviderUserBase, UserContact, HistoryMessage");
             try
             {
                 await _createRegisterBase.pROVERKA();

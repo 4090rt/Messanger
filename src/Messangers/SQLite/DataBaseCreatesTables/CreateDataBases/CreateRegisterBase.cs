@@ -38,6 +38,11 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
                     if (result2)
                     {
                         var result3 = await CreateDataBaseUserCoNTACT();
+
+                        if (result3)
+                        {
+                            var result4 = await CreateDataBaseHistroyMesage();
+                        }
                     }
                 }
                 else
@@ -144,6 +149,46 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
                 { 
                     await commandsql.ExecuteNonQueryAsync().ConfigureAwait(false);
                     _logger.LogInformation($"База ContactUserBD загружена!");
+                    return true;
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                await _sQLiteExceptionDelegate.RunDelegate(_sQLiteExceptionDelegate.Delegate, ex);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
+                return false;
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    _poolSQLiteConnection.CloseConnection(connection);
+                }
+            }
+        }
+
+        public async Task<bool> CreateDataBaseHistroyMesage()
+        {
+            SQLiteConnection connection = null;
+            try
+            {
+                connection = _poolSQLiteConnection.ConnectionOpen();
+
+                string command = "CREATE TABLE IF NOT EXISTS HistoryMessage(Id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    "LoginUser1 TEXT NOT NULL, " +
+                    "LoginUser2 TEXT NOT NULL," +
+                    "Message TEXT NOT NULL," +
+                    "Date TEXT NOT NULL," +
+                    "State TEXT NOT NULL)";
+
+                await using (var sqlcommand = new SQLiteCommand(command, connection))
+                {
+                    await sqlcommand.ExecuteNonQueryAsync().ConfigureAwait(false);
+                    _logger.LogInformation($"База HistoryMessage загружена!");
                     return true;
                 }
             }
