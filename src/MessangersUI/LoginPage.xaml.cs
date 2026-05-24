@@ -34,6 +34,7 @@ namespace MessangersUI
     public partial class LoginPage : Page
     {
         public ILogger<RegistrPage> _logger;
+        public ILogger<PostRequestAddFirstUserContact> _loggerPostRequestAddFirstUserContact;
         public ILogger<GetRequestPing> _pinglogger;
         public ILogger<HttpGetRequestProvider> _loggerprovider;
         public ILogger<PostProviderClient> _postproviderlogger;
@@ -77,6 +78,7 @@ namespace MessangersUI
         public PostRequestCount _postRequestCount;
         public PostRequestOnlineUsersValidate _postRequestOnlineUsersValidate;
         public PostRequestOnlineUser _onlineUser;
+        public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
         string Login = "";
         string Password = "";
         List<DataLogin> datalist = new List<DataLogin>();
@@ -112,6 +114,7 @@ namespace MessangersUI
             _loggercountcon = loggerFactory.CreateLogger<PostRequestCount>();
             _loggervalidateonline = loggerFactory.CreateLogger<PostRequestOnlineUsersValidate>();
             _loggeronlineuser = loggerFactory.CreateLogger<PostRequestOnlineUser>();
+            _loggerPostRequestAddFirstUserContact = loggerFactory.CreateLogger<PostRequestAddFirstUserContact>();
 
 
             var services = new ServiceCollection();
@@ -214,6 +217,13 @@ namespace MessangersUI
                 _taskCanccelException,
                 _jsonExceptionDelegate);
 
+            _PostRequestAddFirstUserContact = new PostRequestAddFirstUserContact(_loggerPostRequestAddFirstUserContact,
+                 _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
 
         }
         public async Task<List<DataLogin>> RequestLogin()
@@ -259,7 +269,8 @@ namespace MessangersUI
                                     _deleteContact,
                                     _postRequestValidationContact,
                                     _postRequestCount,
-                                    _onlineUser
+                                    _onlineUser,
+                                    _PostRequestAddFirstUserContact
                                     );
                                 _MainWindow.Show();
                                 Window windowToClose = (Window)this.Parent;

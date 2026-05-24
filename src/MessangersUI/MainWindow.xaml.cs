@@ -30,6 +30,7 @@ namespace MessangersUI
 {
     public partial class MainWindow : Window
     {
+        public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
         public CancellationTokenSource _cancellationSource;
         public CancellationToken _token;
         public FabricNotification _fabricNotification;
@@ -45,6 +46,7 @@ namespace MessangersUI
         public PostRequestCount _PostRequestCount;
         public PostRequestContacts _postRequestContacts;
         public PostRequestOnlineUser _onlineUser;
+        public main _main;
          
         private readonly string _authToken;
         private readonly string _username;
@@ -54,7 +56,7 @@ namespace MessangersUI
             RequesetInfoProviders RequestProviderClient, PingRequestServerMessang pingRequestServerMessang,
             SearchUserPost searchUserPost, PostRequestContacts postRequestContacts, PostRequestUserContactList postRequestUserContactList, 
             PostRequestDeleteContact deleteContact, HttpPostRequestValidationContact httpPostRequestValidationContact,
-            PostRequestCount postRequestCount, PostRequestOnlineUser onlineUser)
+            PostRequestCount postRequestCount, PostRequestOnlineUser onlineUser, PostRequestAddFirstUserContact PostRequestAddFirstUserContact)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -66,20 +68,21 @@ namespace MessangersUI
             _httpGetRequestProvider = httpGetRequestProvider;
             _PostProviderClient = postProviderClient;
             _RequestProviderClient = RequestProviderClient;
-            gg();
             _PingRequestServerMessang = pingRequestServerMessang;
             _searchuser = searchUserPost;
             _postRequestContacts = postRequestContacts;
             _PostRequestUserContactList = postRequestUserContactList;
             _onlineUser = onlineUser;
-            UIFace();
             _deleteContact = deleteContact;
             _httpPostRequestValidationContact = httpPostRequestValidationContact;
             _PostRequestCount = postRequestCount;
+            _PostRequestAddFirstUserContact = PostRequestAddFirstUserContact;
+            gg();
+            UIFace();
 
-            
         }
         private HubConnection? _connection;
+
         public async void gg()
         {
             // Добавляем токен в query string для WebSocket подключений
@@ -90,10 +93,22 @@ namespace MessangersUI
                    .WithUrl(hubUrl)
                    .WithAutomaticReconnect() // автоматическое переподключение
                    .Build();
-
-                _connection.On<string, string>("ReceiveMessage", (fromUser, message) =>
+                List<UserContact> list = await BaseContacts();
+                _connection.On<string, string>("ReceiveMessage", async (fromUser, message) =>
                 {
-
+                    System.Windows.MessageBox.Show("Сообщение пришло");
+                    if (list != null)
+                    {
+                        foreach (var item in list)
+                        {
+                            if (item.Username != fromUser)
+                            {
+                                System.Windows.MessageBox.Show("контакт не найден");
+                                NewUser(fromUser);
+                            }
+                        }
+                    }
+                    //запрос на сохранение в историю сообщений
                 });
 
                 _connection.On<string>("UserConnect", (user) =>
@@ -272,13 +287,6 @@ namespace MessangersUI
                 System.Windows.MessageBox.Show($"ошибка подключения. Состояние: {_connection.State}");
             }
         }
-
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
-            _cancellationSource?.Cancel();
-
-        }
-
         public async Task<List<UserContact>> BaseContacts()
         {
             try
@@ -289,14 +297,21 @@ namespace MessangersUI
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show(ex.Message + ex.StackTrace);
-                return new List<UserContact> ();
+                return new List<UserContact>();
             }
         }
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            _cancellationSource?.Cancel();
+
+        }
+
         public async void NewUser(string user)
         {
+            bool result = await _PostRequestAddFirstUserContact.PostRequest(user).ConfigureAwait(false);
+
             Dispatcher.Invoke(() =>
             {
-
                 StackPanel userPanel = new StackPanel
                 {
                     Orientation = System.Windows.Controls.Orientation.Horizontal,
@@ -304,13 +319,16 @@ namespace MessangersUI
                     Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 40)),
                     Tag = user
                 };
+                System.Windows.Media.Brush circleColor = result
+                ? System.Windows.Media.Brushes.Green
+                : System.Windows.Media.Brushes.Red;
 
                 Border circle = new Border
                 {
                     Width = 40,
                     Height = 40,
                     CornerRadius = new CornerRadius(20),
-                    Background = System.Windows.Media.Brushes.Green,
+                    Background = circleColor,
                     Margin = new Thickness(5)
                 };
 
@@ -368,7 +386,9 @@ namespace MessangersUI
 
                 chatbutton.Click += async (s, e) =>
                 {
-
+                    var mainWindow = new main(_connection, _authToken, _username, user);
+                    mainWindow.Show();
+                    this.Close();
                 };
 
                 userPanel.Children.Add(circle);
@@ -404,6 +424,7 @@ namespace MessangersUI
                 var users = new DataUsersList()
                 {
                     User = item.Username
+                    
                 };
                 listdata.Add(users);
             }
@@ -424,7 +445,7 @@ namespace MessangersUI
                                 Orientation = System.Windows.Controls.Orientation.Horizontal,
                                 Margin = new Thickness(10),
                                 Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 40)),
-                                Tag = contact.Name
+                                Tag = contact.Username
                             };
                             bool isOnline = onlineusers.Contains(contact.Username);
                             System.Windows.Media.Brush circleColor = isOnline
@@ -452,7 +473,7 @@ namespace MessangersUI
 
                             TextBlock name = new TextBlock
                             {
-                                Text = contact.Name,
+                                Text = contact.Username,
                                 Foreground = System.Windows.Media.Brushes.White,
                                 FontSize = 16,
                                 VerticalAlignment = VerticalAlignment.Center,
@@ -483,17 +504,19 @@ namespace MessangersUI
 
                             deleteBtn.Click += async (s, e) =>
                             {
-                                if (System.Windows.MessageBox.Show($"Удалить контакт {contact.Name}?",
+                                if (System.Windows.MessageBox.Show($"Удалить контакт {contact.Username}?",
                         "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                                     UsersStackPanel.Children.Remove(userPanel);
-                                await _deleteContact.Request(_username, contact.Name);
+                                await _deleteContact.Request(_username, contact.Username);
                                 string result = await _PostRequestCount.RequestPost(_username);
                                 LabelCount.Content = $"Число ваших контактов: {result}";
                             };
 
                             chatbutton.Click += async (s, e) =>
                             {
-
+                                var mainWindow = new main(_connection, _authToken, _username, contact.Username);
+                                mainWindow.Show();
+                                this.Close();
                             };
 
                             userPanel.Children.Add(circle);

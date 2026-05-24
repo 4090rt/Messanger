@@ -37,10 +37,6 @@ namespace MessangersUI.HttpReuest.PostRequestContact
         {
             try 
             {
-                foreach (var item in list)
-                {
-                    System.Windows.MessageBox.Show(item.User);
-                }
                 var client = _httpClientFactory.CreateClient("Client1Http2.0");
 
                 var options = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7167/api/ControllerOnlineusers/onlineuser")
@@ -51,7 +47,7 @@ namespace MessangersUI.HttpReuest.PostRequestContact
 
                 var jsonser = JsonSerializer.Serialize(list, new JsonSerializerOptions
                 {
-                    PropertyNameCaseInsensitive = true,
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
 
                 var stirngcontent = new StringContent(jsonser, Encoding.UTF8,"application/json");
@@ -61,21 +57,11 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                 HttpResponseMessage httpResponseMessage = await client.SendAsync(options).ConfigureAwait(false);
                 if (httpResponseMessage.IsSuccessStatusCode)
                 {
+
                     var result = await httpResponseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    var doc = JsonDocument.Parse(result);
-                    var root = doc.RootElement;
 
-                    var propmessage = root.GetProperty("message").ToString() ?? string.Empty;
-
-                    if (propmessage != null)
-                    {
-                        var listresult = JsonSerializer.Deserialize<List<DataUsersList>>(propmessage);
+                    var listresult = JsonSerializer.Deserialize<List<DataUsersList>>(result);
                         return listresult;
-                    }
-                    else
-                    {
-                        return new List<DataUsersList>();
-                    }
                 }
                 else
                 {
