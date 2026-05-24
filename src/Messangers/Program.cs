@@ -100,6 +100,7 @@ builder.Services.AddScoped<ValidateContact>();
 builder.Services.AddScoped<CountUser>();
 builder.Services.AddScoped<SignalHub>();
 builder.Services.AddScoped<SaveHistoryMessage>();
+builder.Services.AddScoped<UserSearchHistoryDowload>();
 
 // 2. Настройка конфигурации
 builder.Configuration
