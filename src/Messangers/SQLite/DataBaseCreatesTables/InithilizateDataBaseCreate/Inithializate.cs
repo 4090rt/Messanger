@@ -26,7 +26,7 @@ namespace Messangers.SQLite.DataBaseCreatesTables.InithilizateDataBaseCreate
 
         public async Task<bool> MethodCreateBase()
         {
-            _logger.LogWarning("Инициализация баз  RegisterBase, ProviderUserBase");
+            _logger.LogWarning("Инициализация баз  RegisterBase, ProviderUserBase, DataBaseUserCoNTACT, DataBaseHistroyMesage, FileDataBase");
             try
             {
                 await _createRegisterBase.pROVERKA();

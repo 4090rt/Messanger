@@ -50,8 +50,23 @@ namespace Messangers.SQLite.HistroyMessage
             {
                 connection = _poolSQLiteConnection.ConnectionOpen();
 
-                string command = "SELECT LoginUser1, LoginUser2, Message, Date FROM HistoryMessage WHERE LoginUser1 = @U1 AND LoginUser2 = @U2 UNION ALL" +
-                    " SELECT LoginUser1, LoginUser2, Message, Date FROM HistoryMessage WHERE LoginUser1 = @U2 AND LoginUser2 = @U1 ORDER BY Date ASC;";
+                string command = @"
+                SELECT 
+                    m.Id AS MessageId,
+                    m.LoginUser1,
+                    m.LoginUser2,
+                    m.Message,
+                    m.Date,
+                    a.Id AS AttachmentId,
+                    a.FileName,
+                    a.FilePath,
+                    a.FileSize,
+                    a.MimeType
+                FROM HistoryMessage m
+                LEFT JOIN Attachments a ON m.Id = a.MessageId
+                WHERE (m.LoginUser1 = @U1 AND m.LoginUser2 = @U2)
+                   OR (m.LoginUser1 = @U2 AND m.LoginUser2 = @U1)
+                ORDER BY m.Date ASC";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection))
                 {
@@ -60,6 +75,7 @@ namespace Messangers.SQLite.HistroyMessage
 
                     await using  var result = await sqlcommand.ExecuteReaderAsync().ConfigureAwait(false);
 
+                    int idcUser0 = result.GetOrdinal("Id");
                     int idxUser1 = result.GetOrdinal("LoginUser1");
                     int idxUser2 = result.GetOrdinal("LoginUser2");
                     int idxMessage = result.GetOrdinal("Message");
@@ -69,6 +85,7 @@ namespace Messangers.SQLite.HistroyMessage
                     {
                         list.Add(new MessageData
                         {
+                            Id = result.IsDBNull(idcUser0) ? 0 : result.GetInt32(idcUser0),
                             LoginUser1 = result.IsDBNull(idxUser1) ? "" : result.GetString(idxUser1),
                             LoginUser2 = result.IsDBNull(idxUser2) ? "" : result.GetString(idxUser2),
                             Message = result.IsDBNull(idxMessage) ? "" : result.GetString(idxMessage),

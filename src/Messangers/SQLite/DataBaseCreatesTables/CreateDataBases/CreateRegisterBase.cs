@@ -42,6 +42,10 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
                         if (result3)
                         {
                             var result4 = await CreateDataBaseHistroyMesage();
+                            if (result4)
+                            {
+                                var result5 = await CreateFileDataBase();
+                            }
                         }
                     }
                 }
@@ -189,6 +193,50 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
                 {
                     await sqlcommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                     _logger.LogInformation($"База HistoryMessage загружена!");
+                    return true;
+                }
+            }
+            catch (SQLiteException ex)
+            {
+                await _sQLiteExceptionDelegate.RunDelegate(_sQLiteExceptionDelegate.Delegate, ex);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
+                return false;
+            }
+            finally
+            {
+                if (connection != null)
+                {
+                    _poolSQLiteConnection.CloseConnection(connection);
+                }
+            }
+        }
+
+        public async Task<bool> CreateFileDataBase()
+        {
+            SQLiteConnection connection = null;
+            try
+            {
+                connection = _poolSQLiteConnection.ConnectionOpen();
+
+                string command = "CREATE TABLE IF NOT EXISTS Attachments (" +
+               "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
+               "MessageId INTEGER NOT NULL," +
+               "FileName TEXT NOT NULL," +
+               "FilePath TEXT NOT NULL," +
+               "FileSize INTEGER NOT NULL," +
+               "MimeType TEXT NOT NULL," +
+               "CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP," +
+               "FOREIGN KEY (MessageId) REFERENCES HistoryMessage(Id) ON DELETE CASCADE" +
+               ")";
+
+                await using (var sqlcommand = new SQLiteCommand(command, connection))
+                {
+                    await sqlcommand.ExecuteNonQueryAsync().ConfigureAwait(false);
+                    _logger.LogInformation($"База FileDataBase загружена!");
                     return true;
                 }
             }

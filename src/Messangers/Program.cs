@@ -101,6 +101,8 @@ builder.Services.AddScoped<CountUser>();
 builder.Services.AddScoped<SignalHub>();
 builder.Services.AddScoped<SaveHistoryMessage>();
 builder.Services.AddScoped<UserSearchHistoryDowload>();
+builder.Services.AddScoped<DeleteHistory>();
+builder.Services.AddScoped<DeleteConcrectMessage>();
 
 // 2. Настройка конфигурации
 builder.Configuration
