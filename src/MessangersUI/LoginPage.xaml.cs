@@ -5,6 +5,7 @@ using MessangersUI.HasihingPass;
 using MessangersUI.HttpGetRequest;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
+using MessangersUI.HttpReuest.PostRequestHistoryMessage;
 using MessangersUI.HttpReuest.PostRequestLoginAndRegister;
 using MessangersUI.Notifications;
 using Microsoft.Extensions.Caching.Memory;
@@ -48,9 +49,10 @@ namespace MessangersUI
         public ILogger<PostRequestOnlineUsersValidate> _loggervalidateonline;
         public PostRegisterRequest _PostRegisterRequest;
         public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
-        public ILogger<PostRequestOnlineUser> _loggeronlineuser;
+        public ILogger<PostRequestOnlineUsers> _loggeronlineuser;
         public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
+        public ILogger<PostRequestDeleteChatHistory> _loggerPostRequestDeleteChatHistory;
         public CancellationTokenSource _source;
         public CancellationToken _CancellationToken;
         public MainWindow _MainWindow;
@@ -77,8 +79,9 @@ namespace MessangersUI
         public HttpPostRequestValidationContact _postRequestValidationContact;
         public PostRequestCount _postRequestCount;
         public PostRequestOnlineUsersValidate _postRequestOnlineUsersValidate;
-        public PostRequestOnlineUser _onlineUser;
+        public PostRequestOnlineUsers _onlineUser;
         public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
+        public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
         string Login = "";
         string Password = "";
         List<DataLogin> datalist = new List<DataLogin>();
@@ -113,8 +116,9 @@ namespace MessangersUI
             _loggervalidcontact = loggerFactory.CreateLogger<HttpPostRequestValidationContact>();
             _loggercountcon = loggerFactory.CreateLogger<PostRequestCount>();
             _loggervalidateonline = loggerFactory.CreateLogger<PostRequestOnlineUsersValidate>();
-            _loggeronlineuser = loggerFactory.CreateLogger<PostRequestOnlineUser>();
+            _loggeronlineuser = loggerFactory.CreateLogger<PostRequestOnlineUsers>();
             _loggerPostRequestAddFirstUserContact = loggerFactory.CreateLogger<PostRequestAddFirstUserContact>();
+            _loggerPostRequestDeleteChatHistory = loggerFactory.CreateLogger<PostRequestDeleteChatHistory>();
 
 
             var services = new ServiceCollection();
@@ -210,14 +214,22 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
-            _onlineUser = new PostRequestOnlineUser(_loggeronlineuser,
+            _onlineUser = new PostRequestOnlineUsers(_loggeronlineuser,
                 _httpClientFactory,
                 _exceptionDelegate,
                 _httpExceptionDelegate,
-                _taskCanccelException,
-                _jsonExceptionDelegate);
+                _jsonExceptionDelegate,
+                _taskCanccelException
+                );
 
             _PostRequestAddFirstUserContact = new PostRequestAddFirstUserContact(_loggerPostRequestAddFirstUserContact,
+                 _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+            _PostRequestDeleteChatHistory = new PostRequestDeleteChatHistory(_loggerPostRequestDeleteChatHistory,
                  _httpClientFactory,
                 _exceptionDelegate,
                 _httpExceptionDelegate,
@@ -269,8 +281,9 @@ namespace MessangersUI
                                     _deleteContact,
                                     _postRequestValidationContact,
                                     _postRequestCount,
+                                    _PostRequestAddFirstUserContact,
                                     _onlineUser,
-                                    _PostRequestAddFirstUserContact
+                                    _PostRequestDeleteChatHistory
                                     );
                                 _MainWindow.Show();
                                 Window windowToClose = (Window)this.Parent;

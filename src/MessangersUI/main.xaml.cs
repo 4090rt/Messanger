@@ -29,6 +29,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
+using MessangersUI.HttpReuest.PostRequestContact;
 
 
 namespace MessangersUI
@@ -49,6 +50,8 @@ namespace MessangersUI
 
         public ILogger<PostRequestHistroyDowload> _loggerPostRequestHistroyDowload;
         PostRequestHistroyDowload _PostRequestHistroyDowload;
+        public ILogger<PostRequestDeleteConcrectEsaage> _loggerPostRequestDeleteConcrectEsaage;
+        public PostRequestDeleteConcrectEsaage _PostRequestDeleteConcrectEsaage;
 
 
         public ILogger<PostRequestAddFirstUserContact> _loggerPostRequestAddFirstUserContact;
@@ -66,7 +69,8 @@ namespace MessangersUI
         public ILogger<PostRequestOnlineUsersValidate> _loggervalidateonline;
         public PostRegisterRequest _PostRegisterRequest;
         public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
-        public ILogger<PostRequestOnlineUser> _loggeronlineuser;
+        public ILogger<PostRequestOnlineUsers> _loggeronlineuser;
+        public ILogger<PostRequestDeleteChatHistory> _loggerPostRequestDeleteChatHistory;
         public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
         public CancellationTokenSource _source;
@@ -95,8 +99,9 @@ namespace MessangersUI
         public HttpPostRequestValidationContact _postRequestValidationContact;
         public PostRequestCount _postRequestCount;
         public PostRequestOnlineUsersValidate _postRequestOnlineUsersValidate;
-        public PostRequestOnlineUser _onlineUser;
+        public PostRequestOnlineUsers _onlineUser;
         public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
+        public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
         public main(HubConnection? hubconnection, string authtoken, string username, string user)
         {
             InitializeComponent();
@@ -131,10 +136,14 @@ namespace MessangersUI
             _loggervalidcontact = loggerFactory.CreateLogger<HttpPostRequestValidationContact>();
             _loggercountcon = loggerFactory.CreateLogger<PostRequestCount>();
             _loggervalidateonline = loggerFactory.CreateLogger<PostRequestOnlineUsersValidate>();
-            _loggeronlineuser = loggerFactory.CreateLogger<PostRequestOnlineUser>();
+            _loggeronlineuser = loggerFactory.CreateLogger<PostRequestOnlineUsers>();
             _loggersavemessage = loggerFactory.CreateLogger<PostRequestSaveMessage>();
             _loggerPostRequestAddFirstUserContact = loggerFactory.CreateLogger<PostRequestAddFirstUserContact>();
             _loggerPostRequestHistroyDowload = loggerFactory.CreateLogger<PostRequestHistroyDowload>();
+            _loggerPostRequestDeleteChatHistory = loggerFactory.CreateLogger<PostRequestDeleteChatHistory>();
+            _loggerPostRequestDeleteConcrectEsaage = loggerFactory.CreateLogger<PostRequestDeleteConcrectEsaage>();
+
+
 
 
             var services = new ServiceCollection();
@@ -230,12 +239,13 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
-            _onlineUser = new PostRequestOnlineUser(_loggeronlineuser,
+            _onlineUser = new PostRequestOnlineUsers(_loggeronlineuser,
                 _httpClientFactory,
                 _exceptionDelegate,
                 _httpExceptionDelegate,
-                _taskCanccelException,
-                _jsonExceptionDelegate);
+                _jsonExceptionDelegate,
+                _taskCanccelException
+                );
 
             _saveMessage = new PostRequestSaveMessage(_loggersavemessage,
                 _httpClientFactory,
@@ -258,18 +268,32 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _PostRequestDeleteChatHistory = new PostRequestDeleteChatHistory(_loggerPostRequestDeleteChatHistory,
+                 _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+            _PostRequestDeleteConcrectEsaage = new PostRequestDeleteConcrectEsaage(_loggerPostRequestDeleteConcrectEsaage,
+                _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+            _onlineUser = new PostRequestOnlineUsers(_loggeronlineuser,
+            _httpClientFactory,
+            _exceptionDelegate,
+            _httpExceptionDelegate,
+            _jsonExceptionDelegate,
+            _taskCanccelException
+            );
+
             ChatUserName.Text = _user;
             AddHistoryMessage(_username, _user);
-            MainMethod();
         }
 
-        public async void MainMethod()
-        {
-            _hubConnection.On<string, string>("ReceiveMessage", async (fromUser, message) =>
-            {
-                AddMessage(fromUser, message, false);
-            });
-        }
 
         private void MessageTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
@@ -293,6 +317,7 @@ namespace MessangersUI
             await _saveMessage.PostRequest(_username, _user, textMessage, date, "true");
             MessageTextBox.Clear();
             AddMessage(_username, textMessage, true);
+            await AddHistoryMessage(_username, _user);
         }
 
         public async Task AddHistoryMessage(string username, string user)
@@ -341,7 +366,8 @@ namespace MessangersUI
                     : new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 60)),
                 Margin = isMyMessage
                     ? new Thickness(50, 5, 5, 10)
-                    : new Thickness(5, 5, 50, 10)
+                    : new Thickness(5, 5, 50, 10),
+                Tag = item.Id
             };
 
             var panel = new StackPanel { Margin = new Thickness(12, 8, 12, 8) };
@@ -353,9 +379,17 @@ namespace MessangersUI
                     Text = item.LoginUser1,
                     Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(180, 255, 255, 255)),
                     FontSize = 10,
-                    Margin = new Thickness(0, 0, 0, 4)
-                });
+                    Margin = new Thickness(0, 0, 0, 4),
+                    Tag = item.Id
+                }); 
             }
+
+            var contextMenu = new ContextMenu();
+            var deleteMenuItem = new MenuItem { Header = "Удалить сообщение" };
+            deleteMenuItem.Click += async (s, e) => await DeleteMessage(item.Id, border);
+
+            contextMenu.Items.Add(deleteMenuItem);
+            border.ContextMenu = contextMenu;
 
             panel.Children.Add(new TextBlock
             {
@@ -374,11 +408,39 @@ namespace MessangersUI
                 Margin = new Thickness(0, 4, 0, 0)
             });
 
+            panel.Children.Add(new TextBlock
+            {
+                Text = $"{item.Id}",
+                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(180, 255, 255, 255)),
+                FontSize = 10,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
+                Margin = new Thickness(0, 4, 0, 0)
+            });
+
             border.Child = panel;
             return border;
         }
 
+        private async Task DeleteMessage(int id, Border border)
+        {
+            try
+            {
+                await _PostRequestDeleteConcrectEsaage.RequestDeleteConcret(id);
 
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (MessagesItemsControl.Items.Contains(border))
+                    {
+                        MessagesItemsControl.Items.Remove(border);
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show($"Ошибка при удалении: {ex.Message}",
+      "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
         public void AddMessage(string user, string message, bool isCurrentUser)
         {
             Dispatcher.Invoke(() =>
@@ -467,10 +529,24 @@ namespace MessangersUI
                                     _deleteContact,
                                     _postRequestValidationContact,
                                     _postRequestCount,
+                                    _PostRequestAddFirstUserContact,
                                     _onlineUser,
-                                    _PostRequestAddFirstUserContact);
+                                    _PostRequestDeleteChatHistory);
             MainWindow.Show();
             this.Close();
+        }
+
+        private void SendFileButton_Click(object sender, RoutedEventArgs e)
+        {
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            openFileDialog.Filter = "All files (*.*)|*.*";
+            openFileDialog.Title = "Выберите файл для отправки";
+
+            if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            { 
+                string filepath = openFileDialog.FileName;
+                //вызов метода отправки фай
+            }
         }
     }
 }

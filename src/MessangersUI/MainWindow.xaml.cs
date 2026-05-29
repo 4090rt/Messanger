@@ -4,6 +4,7 @@ using MessangersUI.DataModel;
 using MessangersUI.HttpGetRequest;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
+using MessangersUI.HttpReuest.PostRequestHistoryMessage;
 using MessangersUI.HttpReuest.PostRequestLoginAndRegister;
 using MessangersUI.Notifications;
 using Microsoft.AspNetCore.SignalR;
@@ -24,10 +25,12 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using static System.Windows.Forms.AxHost;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace MessangersUI
 {
+
     public partial class MainWindow : Window
     {
         public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
@@ -45,9 +48,11 @@ namespace MessangersUI
         public HttpPostRequestValidationContact _httpPostRequestValidationContact;
         public PostRequestCount _PostRequestCount;
         public PostRequestContacts _postRequestContacts;
-        public PostRequestOnlineUser _onlineUser;
+        public PostRequestOnlineUsers _onlineUser;
+        public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
         public main _main;
-         
+        public bool _Openchat = false;
+        public string _activeChatWith;
         private readonly string _authToken;
         private readonly string _username;
 
@@ -56,7 +61,8 @@ namespace MessangersUI
             RequesetInfoProviders RequestProviderClient, PingRequestServerMessang pingRequestServerMessang,
             SearchUserPost searchUserPost, PostRequestContacts postRequestContacts, PostRequestUserContactList postRequestUserContactList, 
             PostRequestDeleteContact deleteContact, HttpPostRequestValidationContact httpPostRequestValidationContact,
-            PostRequestCount postRequestCount, PostRequestOnlineUser onlineUser, PostRequestAddFirstUserContact PostRequestAddFirstUserContact)
+            PostRequestCount postRequestCount, PostRequestAddFirstUserContact PostRequestAddFirstUserContact, PostRequestOnlineUsers postRequestOnlineUsers,
+            PostRequestDeleteChatHistory postRequestDeleteChatHistory)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -72,17 +78,33 @@ namespace MessangersUI
             _searchuser = searchUserPost;
             _postRequestContacts = postRequestContacts;
             _PostRequestUserContactList = postRequestUserContactList;
-            _onlineUser = onlineUser;
             _deleteContact = deleteContact;
             _httpPostRequestValidationContact = httpPostRequestValidationContact;
             _PostRequestCount = postRequestCount;
             _PostRequestAddFirstUserContact = PostRequestAddFirstUserContact;
+            _onlineUser = postRequestOnlineUsers;
+            _PostRequestDeleteChatHistory = postRequestDeleteChatHistory;
             gg();
+            BaseContacts();
+            MainMethod();
             UIFace();
 
         }
         private HubConnection? _connection;
 
+        public async Task<List<UserContact>> BaseContacts()
+        {
+            try
+            {
+                var result = await _PostRequestUserContactList.RequestPost(_username);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(ex.Message + ex.StackTrace);
+                return new List<UserContact>();
+            }
+        }
         public async void gg()
         {
             // Добавляем токен в query string для WebSocket подключений
@@ -93,24 +115,6 @@ namespace MessangersUI
                    .WithUrl(hubUrl)
                    .WithAutomaticReconnect() // автоматическое переподключение
                    .Build();
-                List<UserContact> list = await BaseContacts();
-                _connection.On<string, string>("ReceiveMessage", async (fromUser, message) =>
-                {
-                    System.Windows.MessageBox.Show("Сообщение пришло");
-                    if (list != null)
-                    {
-                        foreach (var item in list)
-                        {
-                            if (item.Username != fromUser)
-                            {
-                                System.Windows.MessageBox.Show("контакт не найден");
-                                NewUser(fromUser);
-                            }
-                        }
-                    }
-                    //запрос на сохранение в историю сообщений
-                });
-
                 _connection.On<string>("UserConnect", (user) =>
                 {
                     Dispatcher.Invoke(() =>
@@ -163,6 +167,91 @@ namespace MessangersUI
                 }
             }
         }
+        public async Task MainMethod()
+        {
+            _connection.On<string, string>("ReceiveMessage", async (fromUser, message) =>
+            {
+                List<UserContact> list = await BaseContacts();
+
+                var result = new HashSet<string>(list?.Select(p => p.Username) ?? new List<string>());
+
+                if (!result.Contains(fromUser))
+                {
+                    if (System.Windows.MessageBox.Show($"Вам написал {fromUser} \n {message}", "Добавить его в контакты?", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                    {
+                        List<UserContact> user = new List<UserContact>
+                            {
+                                new UserContact
+                                {
+                                    Name = _username,
+                                    Username = fromUser,
+                                    photo = "",
+                                }
+                            };
+                        bool saved = await _postRequestContacts.Request(user);
+                        if (saved)
+                        {
+                            System.Windows.MessageBox.Show("Добавлен в контакты");
+                            NewUser(fromUser);
+                        }
+                    }
+                    else
+                    {
+                        System.Windows.MessageBox.Show("Отклонено");
+                    }
+                }
+                else
+                {
+                    if (_Openchat == false)
+                    {
+                        System.Windows.MessageBox.Show($" {_Openchat}");
+                        System.Windows.MessageBox.Show($"Вам пришло сообщение от чата c {fromUser}");
+                        Notifications(fromUser);
+                    }
+                    else if (_Openchat == true)
+                    {
+                        if (_activeChatWith == fromUser)
+                        {
+                            if (_main != null)
+                            {
+                                System.Windows.MessageBox.Show(
+                           $"_Openchat: {_Openchat}\n" +
+                           $"_activeChatWith: {_activeChatWith}\n" +
+                           $"fromUser: {fromUser}\n" +
+                           $"_main != null: {_main != null}"
+                       );
+                                _main.AddMessage(fromUser, message, false);
+
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        public async void Notifications(string username)
+        {
+            Dispatcher.Invoke(() =>
+            {
+                foreach (StackPanel panel in UsersStackPanel.Children)
+                {
+                    if (panel.Tag.ToString() == username)
+                    {
+                            var border1 = new Border
+                            {
+                                Width = 25,
+                                Height = 25,
+                                CornerRadius = new CornerRadius(20),
+                                Background = System.Windows.Media.Brushes.Green,
+                                Margin = new Thickness(2),
+                            };
+                        panel.Children.Add(border1);
+                        break;
+                    }
+                }
+            });
+        }
+
 
         public void SetUserState(string username, bool state)
         {
@@ -287,19 +376,7 @@ namespace MessangersUI
                 System.Windows.MessageBox.Show($"ошибка подключения. Состояние: {_connection.State}");
             }
         }
-        public async Task<List<UserContact>> BaseContacts()
-        {
-            try
-            {
-                var result = await _PostRequestUserContactList.RequestPost(_username);
-                return result;
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show(ex.Message + ex.StackTrace);
-                return new List<UserContact>();
-            }
-        }
+
         private void Button_Click(object sender, RoutedEventArgs e)
         {
             _cancellationSource?.Cancel();
@@ -374,21 +451,36 @@ namespace MessangersUI
                 deleteBtn.Click += async (s, e) =>
                 {
                     if (System.Windows.MessageBox.Show($"Удалить контакт {user}?",
-            "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                    "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                     {
-                        UsersStackPanel.Children.Remove(userPanel);
-                        await _deleteContact.Request(_username, user);
-                        string result = await _PostRequestCount.RequestPost(_username);
-                        LabelCount.Content = $"Число ваших контактов: {result}";
+                        if (System.Windows.MessageBox.Show($"Удалить историю сообщений с {user}?",
+                        "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                        {
+                            UsersStackPanel.Children.Remove(userPanel);
+                            await _deleteContact.Request(_username, user);
+                            await _PostRequestDeleteChatHistory.PostDeleteHistory(_username, user);
+                            string result = await _PostRequestCount.RequestPost(_username);
+                            LabelCount.Content = $"Число ваших контактов: {result}";
+                        }
+                        else
+                        {
+                            UsersStackPanel.Children.Remove(userPanel);
+                            await _deleteContact.Request(_username, user);
+                            string result = await _PostRequestCount.RequestPost(_username);
+                            LabelCount.Content = $"Число ваших контактов: {result}";
+                        }
                     }
                 };
 
 
                 chatbutton.Click += async (s, e) =>
                 {
+                    _Openchat = true;
                     var mainWindow = new main(_connection, _authToken, _username, user);
+                      _main = mainWindow;
+                    _activeChatWith = user;
                     mainWindow.Show();
-                    this.Close();
+                    this.Hide();
                 };
 
                 userPanel.Children.Add(circle);
@@ -514,9 +606,12 @@ namespace MessangersUI
 
                             chatbutton.Click += async (s, e) =>
                             {
+                                _Openchat = true;
                                 var mainWindow = new main(_connection, _authToken, _username, contact.Username);
+                                _main = mainWindow;
+                                _activeChatWith = contact.Username;
                                 mainWindow.Show();
-                                this.Close();
+                                this.Hide();
                             };
 
                             userPanel.Children.Add(circle);
