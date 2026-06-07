@@ -3,19 +3,23 @@ using Messangers.ModelData;
 using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
-using MessangersUI.HttpGetRequest;
+using MessangersUI.HttpGetRequest.Ping;
+using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage;
+using MessangersUI.HttpReuest.PostRequestHistoryMessage.PostFiles;
 using MessangersUI.HttpReuest.PostRequestLoginAndRegister;
 using MessangersUI.Notifications;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.VisualBasic.ApplicationServices;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -29,7 +33,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using MessangersUI.HttpReuest.PostRequestContact;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 
 namespace MessangersUI
@@ -44,6 +48,12 @@ namespace MessangersUI
         private string _authoken;
         private string _username;
         public string _user;
+        public Border _checkFile;
+        public string _localpath;
+        public static class ChatState
+        {
+            public static AttachmentMetadata PendingAttachment { get; set; }
+        }
 
         public ILogger<PostRequestSaveMessage> _loggersavemessage;
         public PostRequestSaveMessage _saveMessage;
@@ -52,6 +62,12 @@ namespace MessangersUI
         PostRequestHistroyDowload _PostRequestHistroyDowload;
         public ILogger<PostRequestDeleteConcrectEsaage> _loggerPostRequestDeleteConcrectEsaage;
         public PostRequestDeleteConcrectEsaage _PostRequestDeleteConcrectEsaage;
+        public PostRequestHistorySaveFile _PostRequestHistorySaveFile;
+        public ILogger<PostRequestHistorySaveFile> _loggerPostRequestHistorySaveFile;
+        public PostRequestUpdateID _postRequestUpdateID;
+        public ILogger<PostRequestUpdateID> _loggerPostRequestUpdateID;
+        public PostHistoryFiles _postHistoryFiles;
+        public ILogger<PostHistoryFiles> _loggerPostHistoryFiles;
 
 
         public ILogger<PostRequestAddFirstUserContact> _loggerPostRequestAddFirstUserContact;
@@ -142,7 +158,9 @@ namespace MessangersUI
             _loggerPostRequestHistroyDowload = loggerFactory.CreateLogger<PostRequestHistroyDowload>();
             _loggerPostRequestDeleteChatHistory = loggerFactory.CreateLogger<PostRequestDeleteChatHistory>();
             _loggerPostRequestDeleteConcrectEsaage = loggerFactory.CreateLogger<PostRequestDeleteConcrectEsaage>();
-
+            _loggerPostRequestHistorySaveFile = loggerFactory.CreateLogger<PostRequestHistorySaveFile>();
+            _loggerPostRequestUpdateID = loggerFactory.CreateLogger<PostRequestUpdateID>();
+            _loggerPostHistoryFiles = loggerFactory.CreateLogger<PostHistoryFiles>();
 
 
 
@@ -282,7 +300,32 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+
             _onlineUser = new PostRequestOnlineUsers(_loggeronlineuser,
+            _httpClientFactory,
+            _exceptionDelegate,
+            _httpExceptionDelegate,
+            _jsonExceptionDelegate,
+            _taskCanccelException
+            );
+
+            _PostRequestHistorySaveFile = new PostRequestHistorySaveFile(_loggerPostRequestHistorySaveFile,
+             _httpClientFactory,
+            _exceptionDelegate,
+            _httpExceptionDelegate,
+            _jsonExceptionDelegate,
+            _taskCanccelException
+            );
+
+            _postRequestUpdateID = new PostRequestUpdateID(_loggerPostRequestUpdateID,
+            _httpClientFactory,
+            _exceptionDelegate,
+            _httpExceptionDelegate,
+            _jsonExceptionDelegate,
+            _taskCanccelException
+            );
+
+            _postHistoryFiles = new PostHistoryFiles(_loggerPostHistoryFiles,
             _httpClientFactory,
             _exceptionDelegate,
             _httpExceptionDelegate,
@@ -292,6 +335,7 @@ namespace MessangersUI
 
             ChatUserName.Text = _user;
             AddHistoryMessage(_username, _user);
+            AddHistoryFiles(_username, _user);
         }
 
 
@@ -312,12 +356,73 @@ namespace MessangersUI
         private async void SendMessageButton_Click(object sender, RoutedEventArgs e)
         {
             string textMessage = MessageTextBox.Text;
-            await _hubConnection.InvokeAsync("SendMessage", _user, textMessage);
             var date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
-            await _saveMessage.PostRequest(_username, _user, textMessage, date, "true");
-            MessageTextBox.Clear();
-            AddMessage(_username, textMessage, true);
-            await AddHistoryMessage(_username, _user);
+            var attachment = ChatState.PendingAttachment;
+            if (textMessage == null || textMessage == "")
+            {
+                if (attachment.FileName != null)
+                {
+                    textMessage = attachment.FileName;
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show("Выберите файл или напишите  сообщение");
+                }
+            }
+            if (textMessage != null && textMessage != "" && attachment != null && attachment.Id != 0)
+            {
+                textMessage = $"{textMessage}\n File:{attachment.FileName}";
+            }
+            var result = await _saveMessage.PostRequest(_username, _user, textMessage, date, "true");
+            if (attachment == null || attachment.Id == 0)
+            {
+                await _hubConnection.InvokeAsync("SendMessage", _user, textMessage, new AttachmentMetadata());
+               
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    MessageTextBox.Clear();
+                    AddMessage(_username, textMessage, true);
+                });
+            }
+            else if (attachment != null && textMessage == null && textMessage == "" && attachment.Id != 0)
+            {
+ 
+                Int64 attachid = attachment.Id;
+
+                bool resultexec = await _postRequestUpdateID.RequestUpdate(result.id, attachid).ConfigureAwait(false);
+
+                await _hubConnection.InvokeAsync("SendMessage", _user, textMessage, attachment);
+                
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    MessageTextBox.Clear();
+                    AddMessage(_username, textMessage, true);
+                    AddMessageFile(true, attachment);
+                    ChatState.PendingAttachment = null;
+                    if (_checkFile != null)
+                    {
+                        MessagesItemsControl.Items.Remove(_checkFile);
+                    }
+                });
+            }
+            else
+            {
+                Int64 attachid = attachment.Id;
+
+                bool resultexec = await _postRequestUpdateID.RequestUpdate(result.id, attachid).ConfigureAwait(false);
+
+                await _hubConnection.InvokeAsync("SendMessage", _user, textMessage, attachment);
+                await Dispatcher.InvokeAsync(async () =>
+                {
+                    MessageTextBox.Clear();
+                    AddMessageFile(true, attachment);
+                    ChatState.PendingAttachment = null;
+                    if (_checkFile != null)
+                    {
+                        MessagesItemsControl.Items.Remove(_checkFile);
+                    }
+                });
+            }
         }
 
         public async Task AddHistoryMessage(string username, string user)
@@ -348,6 +453,37 @@ namespace MessangersUI
             catch(Exception ex)
             {
                 System.Windows.MessageBox.Show("Возникло исключение" + ex.Message + ex.InnerException + ex.StackTrace);            
+            }
+        }
+
+        public async Task AddHistoryFiles(string username, string user)
+        {
+            try
+            {
+                var result = await _postHistoryFiles.Request(username, user); //post запрос на сервер найти все файлы для чата
+                if (result != null)
+                {
+                    var borders = new List<Border>();
+                    foreach (var item in result)
+                    {
+                        bool isMyMessage = item.User == username;
+                        borders.Add(AddMessageFile(isMyMessage, item));
+                    }
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        foreach (var border in borders)
+                        {
+                            MessagesItemsControl.Items.Add(border);
+                        }
+
+                        // Прокрутка вниз после добавления всех сообщений
+                        MessagesScrollViewer?.ScrollToBottom();
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show("Возникло исключение" + ex.Message + ex.InnerException + ex.StackTrace);
             }
         }
 
@@ -441,6 +577,149 @@ namespace MessangersUI
       "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
+        public Border AddMessageFile(bool isCurrentUser, AttachmentMetadata attachmentMetadata)
+        {
+            Border messageBorder = new Border
+            {
+                CornerRadius = new CornerRadius(15),
+                Margin = new Thickness(5, 5, 5, 10),
+                MaxWidth = 350,
+                HorizontalAlignment = isCurrentUser ? System.Windows.HorizontalAlignment.Right : System.Windows.HorizontalAlignment.Left,
+                Background = isCurrentUser ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 122, 255)) : new SolidColorBrush(System.Windows.Media.Color.FromRgb(229, 229, 234)),
+                Padding = new Thickness(10, 8, 10, 8)
+            };
+
+            Grid contentGrid = new Grid();
+            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+            TextBlock iconText = new TextBlock
+            {
+                Text = "📁",
+                FontSize = 32,
+                Margin = new Thickness(0, 0, 12, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            StackPanel infoPanel = new StackPanel();
+
+            TextBlock fileNameText = new TextBlock
+            {
+                Text = attachmentMetadata.FileName,
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 13,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 250
+            };
+
+            TextBlock LenghtText = new TextBlock
+            {
+                Text = $"{attachmentMetadata.FileSize}",
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 13,
+                TextWrapping = TextWrapping.Wrap,
+                MaxWidth = 250
+            };
+            System.Windows.MessageBox.Show($"Неgfd");
+            if (!isCurrentUser)
+            {
+                System.Windows.Controls.Button button = new System.Windows.Controls.Button()
+                {
+                    Width = 40,
+                    Height = 40,
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(229, 229, 234)),
+                    BorderBrush = System.Windows.Media.Brushes.Black,
+                    BorderThickness = new Thickness(2),
+                    Padding = new Thickness(0)
+                };
+
+                TextBlock downloadIcon = new TextBlock
+                {
+                    Text = "🔽",
+                    FontSize = 20,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                button.Content = downloadIcon;
+                infoPanel.Children.Add(button);
+                button.Click += (s, e) =>
+                {
+                    //Вызов метода Post метода для скачивания файла
+                };
+
+            }
+            if (isCurrentUser)
+            {
+                System.Windows.Controls.Button button = new System.Windows.Controls.Button()
+                {
+                    Width = 40,
+                    Height = 40,
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 122, 255)),
+                    BorderBrush = System.Windows.Media.Brushes.Black,
+                    BorderThickness = new Thickness(2),
+                    Padding = new Thickness(0)
+                };
+
+                TextBlock downloadIcon = new TextBlock
+                {
+                    Text = "📁",
+                    FontSize = 20,
+                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                button.Content = downloadIcon;
+                infoPanel.Children.Add(button);
+
+
+                button.Click += (s, e) =>
+                {
+                    try
+                    {
+                        if (_localpath != null && _localpath != "")
+                        {
+                            if (File.Exists(_localpath))
+                            {
+                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                                {
+                                    FileName = _localpath,
+                                    UseShellExecute = true,
+                                });
+                                _localpath = "";
+                            }
+                        }
+                        else
+                        {
+                            System.Windows.MessageBox.Show($"Путь до файла не найден");
+                            _localpath = "";
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        System.Windows.MessageBox.Show($"Не удалось открыть файл: {ex.Message}");
+                        _localpath = "";
+                    }
+                };
+            }
+
+            infoPanel.Children.Add(fileNameText);
+            infoPanel.Children.Add(LenghtText);
+
+            Grid.SetColumn(iconText, 0);
+            Grid.SetColumn(infoPanel, 1);
+
+            contentGrid.Children.Add(iconText);
+            contentGrid.Children.Add(infoPanel);
+
+            messageBorder.Child = contentGrid;
+
+            MessagesItemsControl.Items.Add(messageBorder);
+
+            return messageBorder;
+        }
+        public void AddMessageImage(string user, string message, bool isCurrentUser, AttachmentMetadata attachment)
+        {
+
+        }
+
         public void AddMessage(string user, string message, bool isCurrentUser)
         {
             Dispatcher.Invoke(() =>
@@ -503,6 +782,7 @@ namespace MessangersUI
                     Margin = new Thickness(0, 5, 0, 0)
                 };
 
+
                 messagePanel.Children.Add(messageText);
                 messagePanel.Children.Add(timeText);
                 messageBorder.Child = messagePanel;
@@ -536,7 +816,7 @@ namespace MessangersUI
             this.Close();
         }
 
-        private void SendFileButton_Click(object sender, RoutedEventArgs e)
+        private async void  SendFileButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog();
             openFileDialog.Filter = "All files (*.*)|*.*";
@@ -545,7 +825,74 @@ namespace MessangersUI
             if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             { 
                 string filepath = openFileDialog.FileName;
-                //вызов метода отправки фай
+                Dispatcher.Invoke(() =>
+                {
+                    Border messageBorder = null;
+
+                    messageBorder = new Border
+                    {
+                        CornerRadius = new CornerRadius(12),
+                        Margin = new Thickness(40, 5, 5, 5), 
+                        MaxWidth = 350,
+                        HorizontalAlignment = System.Windows.HorizontalAlignment.Left,
+                        Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(76, 175, 80)) // Material Design Green (не сливается)
+                    };
+
+                    StackPanel messagePanel = new StackPanel
+                    {
+                        Margin = new Thickness(8, 6, 12, 6) 
+                    };
+
+                    StackPanel contentPanel = new StackPanel
+                    {
+                        Orientation = System.Windows.Controls.Orientation.Horizontal,
+                        Margin = new Thickness(0)
+                    };
+
+                    TextBlock fileNameText = new TextBlock
+                    {
+                        Text = System.IO.Path.GetFileName(filepath), 
+                        Foreground = System.Windows.Media.Brushes.White,
+                        FontSize = 13,
+                        FontFamily = new System.Windows.Media.FontFamily("Segoe UI"),
+                        TextWrapping = TextWrapping.Wrap,
+                        MaxWidth = 280,
+                        VerticalAlignment = VerticalAlignment.Center
+                    };
+
+                    System.Windows.Controls.Button deleteBtn = new System.Windows.Controls.Button
+                    {
+                        Content = "✕", 
+                        Background = System.Windows.Media.Brushes.Transparent,
+                        Foreground = System.Windows.Media.Brushes.White,
+                        Width = 24,
+                        Height = 24,
+                        Margin = new Thickness(8, 0, 0, 0),
+                        Padding = new Thickness(0),
+                        BorderThickness = new Thickness(0),
+                        Tag = filepath,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        FontSize = 14,
+                        FontWeight = FontWeights.Bold
+                    };
+
+                    deleteBtn.MouseEnter += (s, e) =>
+                    {
+                        _checkFile = null;
+                        MessagesItemsControl.Items.Remove(messageBorder);
+                    };
+                    _checkFile = messageBorder;
+                    messagePanel.Children.Add(deleteBtn);
+                    messagePanel.Children.Add(fileNameText);
+                    messageBorder.Child = messagePanel;
+                    MessagesItemsControl.Items.Add(messageBorder);
+
+                });
+                var result = await _PostRequestHistorySaveFile.ReqoestSAVE(filepath, _user, _username);
+                _localpath = filepath;
+                System.Windows.MessageBox.Show($"{result.metadata.Id}");
+                ChatState.PendingAttachment = result.metadata;
+
             }
         }
     }

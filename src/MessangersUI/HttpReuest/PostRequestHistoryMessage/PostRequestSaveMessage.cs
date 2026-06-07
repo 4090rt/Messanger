@@ -41,7 +41,7 @@ namespace MessangersUI.HttpReuest.PostRequestHistoryMessage
             _taskCanccelException = taskCanccelException;
         }
 
-        public async Task<(string message, string state)> PostRequest(string user1, string user2, string message, string date, string state)
+        public async Task<(string message, string state, int id)> PostRequest(string user1, string user2, string message, string date, string state)
         {
             try
             {
@@ -80,35 +80,41 @@ namespace MessangersUI.HttpReuest.PostRequestHistoryMessage
 
                     var propertymessage = root.GetProperty("message").ToString() ?? string.Empty;
                     var propertystate = root.GetProperty("state").ToString() ?? string.Empty;
-
-                    return (propertymessage, propertystate);
+                    int  propertyid = root.GetProperty("id").GetInt32();
+                    return (propertymessage, propertystate, propertyid);
                 }
                 else
                 {
-                    _logger.LogError($"При запрое сохранения истории сообщений возникла ошибка: посткод: {responcemessage.StatusCode}");
+                    var result = await responcemessage.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    var doc = JsonDocument.Parse(result);
+                    var root = doc.RootElement;
+
+                    var propertymessage = root.GetProperty("message").ToString() ?? string.Empty;
+                    var propertystate = root.GetProperty("state").ToString() ?? string.Empty;
+                    _logger.LogError($"При запрое сохранения истории сообщений возникла ошибка: посткод: {responcemessage.StatusCode} " + propertymessage);
                     System.Windows.MessageBox.Show($"При запрое сохранения истории сообщений возникла ошибка: посткод: {responcemessage.StatusCode}");
-                    return ($"{responcemessage.StatusCode}", "false");
+                    return ($"{responcemessage.StatusCode}", "false", 0);
                 }
             }
             catch (TaskCanceledException ex)
             {
                 await _taskCanccelException.RunDelegate(_taskCanccelException.Delegate, ex);
-                return ($"{ex.Message}", "false");
+                return ($"{ex.Message}", "false", 0);
             }
             catch (JsonException ex)
             {
                 await _jsonExceptionDelegate.RunDelegate(_jsonExceptionDelegate.Delegate, ex);
-                return ($"{ex.Message}", "false");
+                return ($"{ex.Message}", "false", 0);
             }
             catch (HttpRequestException ex)
             {
                 await _httpExceptionDelegate.RunDelegate (_httpExceptionDelegate.Delegate, ex);
-                return ($"{ex.Message}", "false");
+                return ($"{ex.Message}", "false", 0);
             }
             catch (Exception ex)
             {
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
-                return ($"{ex.Message}", "false");
+                return ($"{ex.Message}", "false", 0);
             }
         }
     }

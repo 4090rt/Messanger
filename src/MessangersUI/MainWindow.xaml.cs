@@ -1,7 +1,7 @@
 ﻿using Messangers.EthernetRequest;
 using Messangers.ModelData;
 using MessangersUI.DataModel;
-using MessangersUI.HttpGetRequest;
+using MessangersUI.HttpGetRequest.Ping;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage;
@@ -169,7 +169,7 @@ namespace MessangersUI
         }
         public async Task MainMethod()
         {
-            _connection.On<string, string>("ReceiveMessage", async (fromUser, message) =>
+            _connection.On<string, string, AttachmentMetadata>("ReceiveMessage", async (fromUser, message, attachmentMetadata) =>
             {
                 List<UserContact> list = await BaseContacts();
 
@@ -205,7 +205,7 @@ namespace MessangersUI
                     if (_Openchat == false)
                     {
                         System.Windows.MessageBox.Show($" {_Openchat}");
-                        System.Windows.MessageBox.Show($"Вам пришло сообщение от чата c {fromUser}");
+                        System.Windows.MessageBox.Show($"Вам пришло сообщение от чата c {fromUser} {attachmentMetadata.FileName}");
                         Notifications(fromUser);
                     }
                     else if (_Openchat == true)

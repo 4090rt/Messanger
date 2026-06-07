@@ -2,7 +2,7 @@
 using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
-using MessangersUI.HttpGetRequest;
+using MessangersUI.HttpGetRequest.Ping;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage;
