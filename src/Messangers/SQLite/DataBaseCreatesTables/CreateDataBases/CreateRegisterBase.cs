@@ -224,7 +224,7 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
 
                 string command = "CREATE TABLE IF NOT EXISTS Attachments (" +
                "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
-               "MessageId INTEGER NOT NULL," +
+               "MessageId INTEGER," +
                "FileName TEXT NOT NULL," +
                "FilePath TEXT NOT NULL," +
                "FileSize INTEGER NOT NULL," +

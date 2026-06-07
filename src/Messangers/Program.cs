@@ -13,6 +13,7 @@ using Messangers.SQLite.ContactBse.UserSerach;
 using Messangers.SQLite.DataBaseCreatesTables.CreateDataBases;
 using Messangers.SQLite.DataBaseCreatesTables.InithilizateDataBaseCreate;
 using Messangers.SQLite.HistroyMessage;
+using Messangers.SQLite.HistroyMessage.HistoryAttachment;
 using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.UserProviderInsert;
 using Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegisterAndLogin;
@@ -103,6 +104,9 @@ builder.Services.AddScoped<SaveHistoryMessage>();
 builder.Services.AddScoped<UserSearchHistoryDowload>();
 builder.Services.AddScoped<DeleteHistory>();
 builder.Services.AddScoped<DeleteConcrectMessage>();
+builder.Services.AddScoped<AttachmentSave>();
+builder.Services.AddScoped<AttachmentIdUpdate>();
+builder.Services.AddScoped<FileHistory>();
 
 // 2. Настройка конфигурации
 builder.Configuration

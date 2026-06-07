@@ -1,19 +1,19 @@
 ﻿using Messangers.Delegate;
-using Messangers.SQLite.ContactBse.UserSave;
+using Messangers.ModelData;
 using Messangers.SQLite.PoolSQLiteConnection;
 using MessangersUI.Delegate;
 using System.Data.SQLite;
 
-namespace Messangers.SQLite.HistroyMessage
+namespace Messangers.SQLite.HistroyMessage.HistoryAttachment
 {
-    public class SaveHistoryMessage
+    public class AttachmentSave
     {
-        private readonly ILogger<SaveHistoryMessage> _logger;
+        private readonly ILogger<AttachmentSave> _logger;
         private readonly PoolSQLite _poolSQLiteConnection;
         private readonly SQLiteExceptionDelegate _sQLiteExceptionDelegate;
         private readonly ExceptionDelegate _exceptionDelegate;
 
-        public SaveHistoryMessage(ILogger<SaveHistoryMessage> logger, PoolSQLite poolSQLiteConnection, SQLiteExceptionDelegate sQLiteExceptionDelegate, ExceptionDelegate exceptionDelegate)
+        public AttachmentSave(ILogger<AttachmentSave> logger, PoolSQLite poolSQLiteConnection, SQLiteExceptionDelegate sQLiteExceptionDelegate, ExceptionDelegate exceptionDelegate)
         {
             _logger = logger;
             _poolSQLiteConnection = poolSQLiteConnection;
@@ -21,7 +21,7 @@ namespace Messangers.SQLite.HistroyMessage
             _exceptionDelegate = exceptionDelegate;
         }
 
-        public async Task<long> SaveMethod(string user1, string user2, string message, string datetime, string state)
+        public async Task<Int64> SaveRequest(AttachmentMetadata attachmentMetadata)
         {
             SQLiteConnection connection = null;
             SQLiteTransaction transaction = null;
@@ -30,30 +30,28 @@ namespace Messangers.SQLite.HistroyMessage
                 connection = _poolSQLiteConnection.ConnectionOpen();
                 transaction = connection.BeginTransaction();
 
-                string command = "INSERT INTO [HistoryMessage] (LoginUser1, LoginUser2, Message, Date, State) VALUES (@U1, @U2, @M, @D, @S); SELECT last_insert_rowid();";
+                string command = "INSERT INTO [Attachments] (FileName, FilePath, FileSize,MimeType) VALUES (@FN, @FP, @FS, @MT); SELECT last_insert_rowid();";
 
-                await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))
+                await using (var commandsql = new SQLiteCommand(command, connection, transaction))
                 {
-                    sqlcommand.Parameters.AddWithValue("@U1", user1);
-                    sqlcommand.Parameters.AddWithValue("@U2", user2);
-                    sqlcommand.Parameters.AddWithValue("@M", message);
-                    sqlcommand.Parameters.AddWithValue("@D", datetime);
-                    sqlcommand.Parameters.AddWithValue("@S",state);
+                    commandsql.Parameters.AddWithValue("@FN", attachmentMetadata.FileName);
+                    commandsql.Parameters.AddWithValue("@FP", attachmentMetadata.FilePath);
+                    commandsql.Parameters.AddWithValue("@FS", attachmentMetadata.FileSize);
+                    commandsql.Parameters.AddWithValue("@MT", attachmentMetadata.MimeType);
 
-                    long insertedId = (long)await sqlcommand.ExecuteScalarAsync().ConfigureAwait(false);
+                    Int64 insertedId = (Int64)await commandsql.ExecuteScalarAsync().ConfigureAwait(false);
+                    _logger.LogError($"{insertedId}");
                     if (insertedId > 0)
                     {
                         await transaction.CommitAsync().ConfigureAwait(false);
-                        _logger.LogInformation($"Информация о контакте сохранена. ID: {insertedId}, Затронуто строк: 1");
                         return insertedId;
                     }
                     else
                     {
-                        _logger.LogWarning($"Информация о контакте не сохранена. Затронуто строк: {insertedId}");
+                        await transaction.RollbackAsync().ConfigureAwait(false);
                         return 0;
                     }
                 }
-
             }
             catch (SQLiteException ex)
             {

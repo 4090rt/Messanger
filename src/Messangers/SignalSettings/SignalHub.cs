@@ -96,7 +96,7 @@ namespace Messangers.SignalSettings.Hubs
             }
         }
 
-        public async Task SendMessage(string touser, string message)
+        public async Task SendMessage(string touser, string message, AttachmentMetadata attachmentMetadata)
         {
             var fromuser = Context.User?.FindFirst(ClaimTypes.Name)?.Value;
 
@@ -105,15 +105,12 @@ namespace Messangers.SignalSettings.Hubs
             {
                 _logger.LogInformation($"Найден ConnectionId: {connectionId} для {touser}");
 
-                await Clients.Client(connectionId).SendAsync("ReceiveMessage", fromuser, message);
-                _logger.LogInformation("Сообщение отправлено успешно!");
+                await Clients.Client(connectionId).SendAsync("ReceiveMessage", fromuser, message, attachmentMetadata);
+                _logger.LogInformation("Сообщение отправлено успешно!" + $"{attachmentMetadata.Id} {attachmentMetadata.FileName}");
             }
             else
             {
-                _logger.LogInformation($"Найден ConnectionId: {connectionId} для {touser}");
-                     _logger.LogInformation("Сообщение отправлено успешно!");
-                // реализация если пользователь оффлайн: оффлайн - нашли в бд - созранали сообщение
-                //отправили когда он появился онлайн
+                _logger.LogInformation("Сообщение отправлено успешно!" + $"{attachmentMetadata.Id} {attachmentMetadata.FileName}");
             }
         }
     }
