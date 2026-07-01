@@ -90,7 +90,7 @@ builder.Services.AddScoped<CheckHashPasswordFromBD>();
 builder.Services.AddScoped<CheckUserInBD>();
 builder.Services.AddScoped<JWTokenSettings>();
 builder.Services.AddScoped<PingRequest>();
-builder.Services.AddScoped<RequesetInfoProviders>();
+builder.Services.AddScoped<RequesetInfoProvidersServer>();
 builder.Services.AddScoped<Deserialize>();
 builder.Services.AddScoped<InsertProvider>();
 builder.Services.AddScoped<Search>();
@@ -107,6 +107,8 @@ builder.Services.AddScoped<DeleteConcrectMessage>();
 builder.Services.AddScoped<AttachmentSave>();
 builder.Services.AddScoped<AttachmentIdUpdate>();
 builder.Services.AddScoped<FileHistory>();
+builder.Services.AddScoped<CheckUserInBD>();  
+builder.Services.AddScoped<CheckHashPasswordFromBD>();
 
 // 2. Настройка конфигурации
 builder.Configuration
@@ -156,7 +158,7 @@ _ = Task.Run(async () =>
         {
             using (var scope = app.Services.CreateScope())
             {
-                var request = scope.ServiceProvider.GetRequiredService<RequesetInfoProviders>();
+                var request = scope.ServiceProvider.GetRequiredService<RequesetInfoProvidersServer>();
                 var result = await request.CacheRequest();
                 foreach (var item in result)
                 {
