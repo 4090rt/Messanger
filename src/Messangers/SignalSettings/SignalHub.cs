@@ -104,7 +104,7 @@ namespace Messangers.SignalSettings.Hubs
             if (_onlineUsers.TryGetValue(touser, out var connectionId))
             {
                 _logger.LogInformation($"Найден ConnectionId: {connectionId} для {touser}");
-
+                _logger.LogError("Найден attachment" + attachmentMetadata.FileName);
                 await Clients.Client(connectionId).SendAsync("ReceiveMessage", fromuser, message, attachmentMetadata);
                 _logger.LogInformation("Сообщение отправлено успешно!" + $"{attachmentMetadata.Id} {attachmentMetadata.FileName}");
             }

@@ -33,19 +33,21 @@ namespace Messangers.SQLite.HistroyMessage.HistoryAttachment
                 transaction = connection.BeginTransaction();
 
                 string command =
-                    "SELECT a.*, m.HistoryMessage AS LoginUser1" +
-                    " FROM Attachments a JOIN HistoryMessage m ON a.MessageId = m.Id " +
+                    "SELECT a.*, m.LoginUser1 " +
+                    "FROM Attachments a " +
+                    "JOIN HistoryMessage m " +
+                    "ON a.MessageId = m.Id " +
                     "WHERE (m.LoginUser1 = @CurrentUserId AND m.LoginUser2 = @OtherUserId)" +
-                    "  OR (m.LoginUser1 = @OtherUserId AND m.LoginUser2 = @CurrentUserId) " +
-                    "ORDER BY m.Timestamp DESC";
+                    "OR (m.LoginUser1 = @OtherUserId AND m.LoginUser2 = @CurrentUserId) " +
+                    "ORDER BY m.Date DESC";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))
                 {
                     sqlcommand.Parameters.AddWithValue("@CurrentUserId", user1);
                     sqlcommand.Parameters.AddWithValue("@OtherUserId", user2);
 
-                    var result = await sqlcommand.ExecuteReaderAsync().ConfigureAwait(false);
-
+                    await using (var result = await sqlcommand.ExecuteReaderAsync().ConfigureAwait(false))
+                    {
                         var attachmentId1 = result.GetOrdinal("Id");
                         var attachmentIdMessage2 = result.GetOrdinal("MessageId");
                         var attachmentFileName3 = result.GetOrdinal("FileName");
@@ -70,7 +72,9 @@ namespace Messangers.SQLite.HistroyMessage.HistoryAttachment
                             });
                         }
                         await transaction.CommitAsync().ConfigureAwait(false);
+                        _logger.LogError("Возвращен лист с "  + attachmentMetadataList.Count + "файлами");
                         return (attachmentMetadataList);
+                    }
                 }
 
             }

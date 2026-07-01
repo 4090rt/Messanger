@@ -31,6 +31,12 @@ namespace Messangers.Controllers.ControllerRegisterAndLogin
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] ModelDataLogin request)
         {
+            Response.Headers.Add("Cache-Control", "no-cache, no-store, must-revalidate");
+            Response.Headers.Add("Pragma", "no-cache");
+            Response.Headers.Add("Expires", "0");
+
+            _logger.LogInformation($"Получен логин: {request?.Login}");
+            _logger.LogError(request.Login);
             Console.WriteLine("Авторизация пользователя", request.Login);
             if (request == null)
                 return BadRequest(new {error =  "Данные не переданы" });

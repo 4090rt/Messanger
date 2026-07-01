@@ -17,11 +17,11 @@ namespace Messangers.Controllers.ControllerEthernetStat
         private readonly PoolSQLite _poolSQLiteConnection;
         private readonly SQLiteExceptionDelegate _sQLiteExceptionDelegate;
         private readonly ExceptionDelegate _exceptionDelegate;
-        private readonly RequesetInfoProviders _requesetInfoProviders;
+        private readonly RequesetInfoProvidersServer _requesetInfoProviders;
 
         public ControllerGetRequestProvider(ILogger<ControllerGetRequestProvider> logger, SaveRequestInBdRegister saveRequestInBdRegister,
             PoolSQLite poolSQLiteConnection, SQLiteExceptionDelegate sQLiteExceptionDelegate,
-            ExceptionDelegate exceptionDelegate, RequesetInfoProviders requesetInfoProviders)
+            ExceptionDelegate exceptionDelegate, RequesetInfoProvidersServer requesetInfoProviders)
         {
             _logger = logger;
             _saveRequestInBdRegister = saveRequestInBdRegister;
