@@ -15,7 +15,7 @@ namespace MessangersUI.HttpReuest.PostRequestHistoryMessage.PostFiles
 {
     public class AttachmentsResponse
     {
-        public List<AttachmentMetadata> Attachments { get; set; }
+        public List<AttachmentMetadata> message { get; set; }
         public string State { get; set; }
     }
     public class PostHistoryFiles
@@ -66,7 +66,7 @@ namespace MessangersUI.HttpReuest.PostRequestHistoryMessage.PostFiles
                 options.Content = stringcontent; 
 
                 HttpResponseMessage responseMessage = await client.SendAsync(options).ConfigureAwait(false);
-                if (responseMessage.IsSuccessStatusCode)
+               if (responseMessage.IsSuccessStatusCode)
                 {
                     var result = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var jsondoc = JsonDocument.Parse(result);
@@ -74,7 +74,7 @@ namespace MessangersUI.HttpReuest.PostRequestHistoryMessage.PostFiles
 
                     var deserialize = JsonSerializer.Deserialize<AttachmentsResponse>(result);
 
-                    return deserialize.Attachments;
+                    return deserialize.message;
                 }
                 else
                 {

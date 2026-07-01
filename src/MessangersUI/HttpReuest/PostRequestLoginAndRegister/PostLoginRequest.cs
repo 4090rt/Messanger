@@ -32,7 +32,7 @@ namespace MessangersUI.HttpReuest.PostRequestLoginAndRegister
             _taskCanccelException = taskCanccelException;
         }
 
-        public async Task<(bool Succes, string errormesseage, string token, string username)> Request(List<DataLogin> list)
+        public async Task<(bool Succes, string errormesseage, string token, string username)> Request(DataLogin list)
         {
             try
             {
@@ -44,25 +44,17 @@ namespace MessangersUI.HttpReuest.PostRequestLoginAndRegister
                     VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
                 };
 
-                var logindata = list.FirstOrDefault();
-                if (logindata == null)
+                if (list == null)
                 {
                     return (false, "Нет данных для отправки", "", "");
                 }
 
-                var loglist = new
-                {
-                    login = logindata.Login,
-                    password = logindata.Password
-                };
-
-                byte[] bytes = JsonSerializer.SerializeToUtf8Bytes(list);
-                string tobase64 = Convert.ToBase64String(bytes);
-
-                var json = JsonSerializer.Serialize(loglist, new JsonSerializerOptions
+                var json = JsonSerializer.Serialize(list, new JsonSerializerOptions
                 {
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase
                 });
+
+                System.Windows.MessageBox.Show(list.Login);
 
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 

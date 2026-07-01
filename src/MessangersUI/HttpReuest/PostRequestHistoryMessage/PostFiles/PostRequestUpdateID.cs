@@ -47,7 +47,6 @@ namespace MessangersUI.HttpReuest.PostRequestHistoryMessage.PostFiles
                     Version = HttpVersion.Version20,
                     VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
                 };
-                MessageBox.Show("Запрос");
                 var data = new UpdateId
                 {
                     Id = id,
@@ -63,21 +62,17 @@ namespace MessangersUI.HttpReuest.PostRequestHistoryMessage.PostFiles
                 var content = new StringContent(jsonser, Encoding.UTF8, "application/json");
 
                 options.Content = content;
-                MessageBox.Show("контент");
                 HttpResponseMessage responseMessage = await client.SendAsync(options).ConfigureAwait(false);
                 if (responseMessage.IsSuccessStatusCode)
                 {
-                    MessageBox.Show("ответ +");
                     var result = await responseMessage.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var jsondoc = JsonDocument.Parse(result);
                     var root = jsondoc.RootElement;
-                    MessageBox.Show("распаршено");
                     var propertystate = root.GetProperty("state").GetRawText() ?? string.Empty;
 
                     if (propertystate == "true")
                     {
                         _logger.LogInformation("Успешно обновлено");
-                        MessageBox.Show("Успешно обновлено");
                         return true;
                     }
                     else
