@@ -84,7 +84,6 @@ namespace MessangersUI
         public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
         string Login = "";
         string Password = "";
-        List<DataLogin> datalist = new List<DataLogin>();
         public  LoginPage()
         {
             InitializeComponent();
@@ -238,7 +237,7 @@ namespace MessangersUI
 
 
         }
-        public async Task<List<DataLogin>> RequestLogin()
+        public async Task RequestLogin()
         {
             try
             {
@@ -254,13 +253,14 @@ namespace MessangersUI
                         Login = Login,
                         Password = await _passwordhASH.Hash(Password),
                     };
-                    datalist.Add(requestcontent);
-
+                    TextLogin.Clear();
+                    TextPassword.Clear();
                     if (_source.IsCancellationRequested == true)
                     {
                         throw new OperationCanceledException();
                     }
-                    var result = await _postLoginRequest.Request(datalist).ConfigureAwait(false);
+                    System.Windows.MessageBox.Show(Login);
+                    var result = await _postLoginRequest.Request(requestcontent).ConfigureAwait(false);
                     if (result.Succes == true)
                     {
                         bool resultvalidateonline = await _postRequestOnlineUsersValidate.RequestPost(Login);
@@ -293,6 +293,7 @@ namespace MessangersUI
                         else
                         {
                             System.Windows.MessageBox.Show("Этот юзер уже онлайн");
+                            return;
                         }
                     }
                     else
@@ -300,6 +301,7 @@ namespace MessangersUI
                         await Dispatcher.InvokeAsync(() =>
                         {
                             System.Windows.MessageBox.Show($"Взникла ошибка, {result.errormesseage}, {result.Succes}");
+                            return;
                         });
                     }
                 }
@@ -308,21 +310,19 @@ namespace MessangersUI
                     await Dispatcher.InvokeAsync(() =>
                     {
                         System.Windows.MessageBox.Show("Заполните все поля!");
+                        return;
                     });
 
                 }
-                return datalist;
             }
             catch (OperationCanceledException ex)
             {
                 var not = _fabricNotification.Method(NotificationsName.SendCancel);
                 not.Notify();
-                return new List<DataLogin>();
             }
             catch (Exception ex)
             {
                 await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show($"Ошибка: {ex.Message}"));
-                return new List<DataLogin>();
             }
             finally
             {
@@ -335,7 +335,7 @@ namespace MessangersUI
         }
         private async void Button_Click_2(object sender, RoutedEventArgs e)
         {
-            var result = await RequestLogin();
+             await RequestLogin();
         }
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)

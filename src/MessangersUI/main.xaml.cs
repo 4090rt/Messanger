@@ -19,6 +19,7 @@ using Microsoft.VisualBasic.ApplicationServices;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -38,9 +39,6 @@ using static System.Windows.Forms.VisualStyles.VisualStyleElement.StartPanel;
 
 namespace MessangersUI
 {
-    /// <summary>
-    /// Логика взаимодействия для main.xaml
-    /// </summary>
     public partial class main : Window
     {
 
@@ -50,6 +48,14 @@ namespace MessangersUI
         public string _user;
         public Border _checkFile;
         public string _localpath;
+
+        public class ChatItem
+        {
+            public string Type { get; set; }
+            public object Data { get; set; }
+            public bool IsMyMessage { get; set; }
+            public DateTime Date { get; set; }
+        }
         public static class ChatState
         {
             public static AttachmentMetadata PendingAttachment { get; set; }
@@ -334,19 +340,91 @@ namespace MessangersUI
             );
 
             ChatUserName.Text = _user;
-            AddHistoryMessage(_username, _user);
-            AddHistoryFiles(_username, _user);
+            LoadHistory(_username, user);
         }
 
+        public async Task LoadHistory(string username, string user)
+        {
+            try
+            {
+                var messagesTask = _PostRequestHistroyDowload.PostRequest(username, user);
+                var filesTask = _postHistoryFiles.Request(username, user);
+
+                await Task.WhenAll(messagesTask, filesTask);
+
+                var messages = await messagesTask;
+                var files = await filesTask;
+
+                var chatItems = new List<ChatItem>();
+
+                if (messages != null)
+                {
+                    foreach (var msg in messages)
+                    {
+                        chatItems.Add(new ChatItem
+                        {
+                            Type = "Message",
+                            Data = msg,
+                            IsMyMessage = msg.LoginUser1 == username,
+                            Date = DateTime.TryParse(msg.Date, out var date) ? date : DateTime.MinValue
+                        });
+                    }
+                }
+
+                if (files != null)
+                {
+                    foreach (var file in files)
+                    {
+                        chatItems.Add(new ChatItem
+                        {
+                            Type = "File",
+                            Data = file,
+                            IsMyMessage = file.User == username,
+                            Date = DateTime.TryParse(file.CreatedAt, out var date) ? date : DateTime.MinValue
+                        });
+                    }
+                }
+
+                chatItems = chatItems.OrderBy(x => x.Date).ToList();
+
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    MessagesItemsControl.Items.Clear();
+
+                    foreach (var item in chatItems)
+                    {
+                        if (item.Type == "Message")
+                        {
+                            var msg = (MessageData)item.Data;
+                            var border = CreateMessageBorder(msg, item.IsMyMessage);
+                            MessagesItemsControl.Items.Add(border);
+                        }
+                        else if (item.Type == "File")
+                        {
+                            var file = (AttachmentMetadata)item.Data;
+                            var border = AddMessageFile(item.IsMyMessage, file);
+                            MessagesItemsControl.Items.Add(border);
+                        }
+                    }
+
+                    MessagesScrollViewer?.ScrollToBottom();
+                });
+            }
+            catch (Exception ex)
+            {
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    System.Windows.MessageBox.Show($"Ошибка загрузки истории: {ex.Message}");
+                });
+            }
+        }
 
         private void MessageTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             var textBox = sender as System.Windows.Controls.TextBox;
 
-            // Автоматическая прокрутка к курсору
             textBox?.ScrollToEnd();
 
-            // Обновляем размер скроллвьюера
             if (textBox?.LineCount > 3)
             {
                 MessageScrollViewer.UpdateLayout();
@@ -360,6 +438,10 @@ namespace MessangersUI
             var attachment = ChatState.PendingAttachment;
             if (textMessage == null || textMessage == "")
             {
+                if (attachment == null)
+                {
+                    return;
+                }
                 if (attachment.FileName != null)
                 {
                     textMessage = attachment.FileName;
@@ -384,7 +466,7 @@ namespace MessangersUI
                     AddMessage(_username, textMessage, true);
                 });
             }
-            else if (attachment != null && textMessage == null && textMessage == "" && attachment.Id != 0)
+            else if (attachment != null && textMessage != null && textMessage != "" && attachment.Id != 0)
             {
  
                 Int64 attachid = attachment.Id;
@@ -407,6 +489,7 @@ namespace MessangersUI
             }
             else
             {
+                System.Windows.MessageBox.Show("Бкез текста");
                 Int64 attachid = attachment.Id;
 
                 bool resultexec = await _postRequestUpdateID.RequestUpdate(result.id, attachid).ConfigureAwait(false);
@@ -424,69 +507,6 @@ namespace MessangersUI
                 });
             }
         }
-
-        public async Task AddHistoryMessage(string username, string user)
-        {
-            try
-            {
-                var result = await _PostRequestHistroyDowload.PostRequest(username, user);
-                if (result != null)
-                {
-                    var borders = new List<Border>();
-                    foreach (var item in result)
-                    {
-                        bool isMyMessage = item.LoginUser1 == username;
-                        borders.Add(CreateMessageBorder(item, isMyMessage));
-                    }
-                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        foreach (var border in borders)
-                        {
-                            MessagesItemsControl.Items.Add(border);
-                        }
-
-                        // Прокрутка вниз после добавления всех сообщений
-                        MessagesScrollViewer?.ScrollToBottom();
-                    });
-                }
-            }
-            catch(Exception ex)
-            {
-                System.Windows.MessageBox.Show("Возникло исключение" + ex.Message + ex.InnerException + ex.StackTrace);            
-            }
-        }
-
-        public async Task AddHistoryFiles(string username, string user)
-        {
-            try
-            {
-                var result = await _postHistoryFiles.Request(username, user); //post запрос на сервер найти все файлы для чата
-                if (result != null)
-                {
-                    var borders = new List<Border>();
-                    foreach (var item in result)
-                    {
-                        bool isMyMessage = item.User == username;
-                        borders.Add(AddMessageFile(isMyMessage, item));
-                    }
-                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
-                    {
-                        foreach (var border in borders)
-                        {
-                            MessagesItemsControl.Items.Add(border);
-                        }
-
-                        // Прокрутка вниз после добавления всех сообщений
-                        MessagesScrollViewer?.ScrollToBottom();
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                System.Windows.MessageBox.Show("Возникло исключение" + ex.Message + ex.InnerException + ex.StackTrace);
-            }
-        }
-
 
         private Border CreateMessageBorder(MessageData item, bool isMyMessage)
         {
@@ -544,15 +564,6 @@ namespace MessangersUI
                 Margin = new Thickness(0, 4, 0, 0)
             });
 
-            panel.Children.Add(new TextBlock
-            {
-                Text = $"{item.Id}",
-                Foreground = new SolidColorBrush(System.Windows.Media.Color.FromArgb(180, 255, 255, 255)),
-                FontSize = 10,
-                HorizontalAlignment = System.Windows.HorizontalAlignment.Right,
-                Margin = new Thickness(0, 4, 0, 0)
-            });
-
             border.Child = panel;
             return border;
         }
@@ -577,144 +588,124 @@ namespace MessangersUI
       "Ошибка", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        public Border AddMessageFile(bool isCurrentUser, AttachmentMetadata attachmentMetadata)
+
+        public Border AddMessageFile(bool isCurrentUser, AttachmentMetadata attachment, string localPath = "")
         {
-            Border messageBorder = new Border
+            // 1. Основной блок сообщения
+            var border = new Border
             {
-                CornerRadius = new CornerRadius(15),
-                Margin = new Thickness(5, 5, 5, 10),
+                CornerRadius = new CornerRadius(10),
+                Margin = new Thickness(5, 3, 5, 3),
                 MaxWidth = 350,
                 HorizontalAlignment = isCurrentUser ? System.Windows.HorizontalAlignment.Right : System.Windows.HorizontalAlignment.Left,
-                Background = isCurrentUser ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 122, 255)) : new SolidColorBrush(System.Windows.Media.Color.FromRgb(229, 229, 234)),
+                Background = isCurrentUser
+                    ? new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 122, 255))
+                    : new SolidColorBrush(System.Windows.Media.Color.FromRgb(229, 229, 234)),
                 Padding = new Thickness(10, 8, 10, 8)
             };
 
-            Grid contentGrid = new Grid();
-            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            contentGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            // 2. Сетка: иконка | информация | кнопка
+            var grid = new Grid();
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            TextBlock iconText = new TextBlock
+            // 3. Иконка файла
+            var icon = new TextBlock
             {
                 Text = "📁",
-                FontSize = 32,
-                Margin = new Thickness(0, 0, 12, 0),
+                FontSize = 28,
+                Margin = new Thickness(0, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Center
             };
-            StackPanel infoPanel = new StackPanel();
 
-            TextBlock fileNameText = new TextBlock
+            // 4. Информация
+            var infoStack = new StackPanel();
+
+            var nameText = new TextBlock
             {
-                Text = attachmentMetadata.FileName,
+                Text = attachment.FileName,
                 FontWeight = FontWeights.SemiBold,
                 FontSize = 13,
+                Foreground = isCurrentUser ? System.Windows.Media.Brushes.White : System.Windows.Media.Brushes.Black,
                 TextWrapping = TextWrapping.Wrap,
-                MaxWidth = 250
+                MaxWidth = 200
             };
 
-            TextBlock LenghtText = new TextBlock
+            var sizeText = new TextBlock
             {
-                Text = $"{attachmentMetadata.FileSize}",
-                FontWeight = FontWeights.SemiBold,
-                FontSize = 13,
-                TextWrapping = TextWrapping.Wrap,
-                MaxWidth = 250
+                Text = $"{attachment.FileSize / 1024.0 / 1024.0:F2} MB",
+                FontSize = 11,
+                Foreground = isCurrentUser
+                    ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(200, 255, 255, 255))
+                    : new SolidColorBrush(System.Windows.Media.Color.FromArgb(200, 100, 100, 100))
             };
-            System.Windows.MessageBox.Show($"Неgfd");
-            if (!isCurrentUser)
+
+            infoStack.Children.Add(nameText);
+            infoStack.Children.Add(sizeText);
+
+            // 5. Кнопка
+            var button = new System.Windows.Controls.Button
             {
-                System.Windows.Controls.Button button = new System.Windows.Controls.Button()
-                {
-                    Width = 40,
-                    Height = 40,
-                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(229, 229, 234)),
-                    BorderBrush = System.Windows.Media.Brushes.Black,
-                    BorderThickness = new Thickness(2),
-                    Padding = new Thickness(0)
-                };
+                Width = 32,
+                Height = 32,
+                Margin = new Thickness(10, 0, 0, 0),
+                Background = isCurrentUser
+                    ? new SolidColorBrush(System.Windows.Media.Color.FromArgb(60, 255, 255, 255))
+                    : new SolidColorBrush(System.Windows.Media.Color.FromRgb(210, 210, 215)),
+                BorderThickness = new Thickness(0),
+                Padding = new Thickness(0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
 
-                TextBlock downloadIcon = new TextBlock
-                {
-                    Text = "🔽",
-                    FontSize = 20,
-                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                button.Content = downloadIcon;
-                infoPanel.Children.Add(button);
-                button.Click += (s, e) =>
-                {
-                    //Вызов метода Post метода для скачивания файла
-                };
+            // Иконка кнопки
+            var buttonIcon = new TextBlock
+            {
+                Text = isCurrentUser ? "📂" : "⬇",
+                FontSize = 16,
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            button.Content = buttonIcon;
 
-            }
+            // 6. Обработчик
             if (isCurrentUser)
             {
-                System.Windows.Controls.Button button = new System.Windows.Controls.Button()
-                {
-                    Width = 40,
-                    Height = 40,
-                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(0, 122, 255)),
-                    BorderBrush = System.Windows.Media.Brushes.Black,
-                    BorderThickness = new Thickness(2),
-                    Padding = new Thickness(0)
-                };
-
-                TextBlock downloadIcon = new TextBlock
-                {
-                    Text = "📁",
-                    FontSize = 20,
-                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                button.Content = downloadIcon;
-                infoPanel.Children.Add(button);
-
-
+                button.ToolTip = "Открыть файл";
                 button.Click += (s, e) =>
                 {
-                    try
+                    if (string.IsNullOrEmpty(localPath) || !File.Exists(localPath))
                     {
-                        if (_localpath != null && _localpath != "")
-                        {
-                            if (File.Exists(_localpath))
-                            {
-                                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
-                                {
-                                    FileName = _localpath,
-                                    UseShellExecute = true,
-                                });
-                                _localpath = "";
-                            }
-                        }
-                        else
-                        {
-                            System.Windows.MessageBox.Show($"Путь до файла не найден");
-                            _localpath = "";
-                        }
-                    }
-                    catch(Exception ex)
-                    {
-                        System.Windows.MessageBox.Show($"Не удалось открыть файл: {ex.Message}");
-                        _localpath = "";
+                        System.Windows.MessageBox.Show("Файл не найден", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
                     }
                 };
             }
+            else
+            {
+                button.ToolTip = "Скачать файл";
+                button.Click += async (s, e) =>
+                {
+                    // TODO: ваш метод скачивания
+                    // await DownloadFile(attachment.Id);
+                    System.Windows.MessageBox.Show("Скачивание: " + attachment.FileName);
+                };
+            }
 
-            infoPanel.Children.Add(fileNameText);
-            infoPanel.Children.Add(LenghtText);
+            // 7. Сборка
+            Grid.SetColumn(icon, 0);
+            Grid.SetColumn(infoStack, 1);
+            Grid.SetColumn(button, 2);
 
-            Grid.SetColumn(iconText, 0);
-            Grid.SetColumn(infoPanel, 1);
+            grid.Children.Add(icon);
+            grid.Children.Add(infoStack);
+            grid.Children.Add(button);
 
-            contentGrid.Children.Add(iconText);
-            contentGrid.Children.Add(infoPanel);
+            border.Child = grid;
 
-            messageBorder.Child = contentGrid;
-
-            MessagesItemsControl.Items.Add(messageBorder);
-
-            return messageBorder;
+            return border;
         }
+
         public void AddMessageImage(string user, string message, bool isCurrentUser, AttachmentMetadata attachment)
         {
 
