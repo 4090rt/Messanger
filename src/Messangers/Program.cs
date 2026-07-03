@@ -109,6 +109,7 @@ builder.Services.AddScoped<AttachmentIdUpdate>();
 builder.Services.AddScoped<FileHistory>();
 builder.Services.AddScoped<CheckUserInBD>();  
 builder.Services.AddScoped<CheckHashPasswordFromBD>();
+builder.Services.AddScoped<SelectAllPathAttachment>();
 
 // 2. Настройка конфигурации
 builder.Configuration

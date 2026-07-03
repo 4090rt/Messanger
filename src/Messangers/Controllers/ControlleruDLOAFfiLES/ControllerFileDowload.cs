@@ -1,4 +1,5 @@
-﻿using MessangersUI.Delegate;
+﻿using Messangers.SQLite.HistroyMessage.HistoryAttachment;
+using MessangersUI.Delegate;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Messangers.Controllers.ControlleruDLOAFfiLES
@@ -9,11 +10,13 @@ namespace Messangers.Controllers.ControlleruDLOAFfiLES
     {
         private readonly ILogger<ControllerFileDowload> _logger;
         private readonly ExceptionDelegate _exceptionDelegate;
+        private readonly SelectAllPathAttachment _selectAllPathAttachment;
 
-        public ControllerFileDowload(ILogger<ControllerFileDowload> logger, ExceptionDelegate exceptionDelegate)
+        public ControllerFileDowload(ILogger<ControllerFileDowload> logger, ExceptionDelegate exceptionDelegate, SelectAllPathAttachment selectAllPathAttachment)
         { 
             _logger = logger;
             _exceptionDelegate = exceptionDelegate;
+            _selectAllPathAttachment = selectAllPathAttachment;
         }
 
         [HttpGet("download/{id}")]
@@ -24,16 +27,20 @@ namespace Messangers.Controllers.ControlleruDLOAFfiLES
                 string Fullpath = "";
                 if (id > 0)
                 {
-                    // запрос в бд для поиска по id
+                    Fullpath = await _selectAllPathAttachment.FullpathGive(id);
 
                     if (!System.IO.File.Exists(Fullpath))
                     {
-                        return BadRequest(new {message = "Не удалось найти файл"});
+                        return BadRequest(new { message = "Не удалось найти файл" });
                     }
 
                     byte[] bytes = System.IO.File.ReadAllBytes(Fullpath);
 
-                    return Ok(new {message = bytes});   
+                    return Ok(new { message = bytes });
+                }
+                else
+                {
+                    return BadRequest(new { message = "Некорректный айди!" });
                 }
             }
             catch (Exception ex)
