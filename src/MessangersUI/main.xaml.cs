@@ -3,6 +3,7 @@ using Messangers.ModelData;
 using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
+using MessangersUI.HttpGetRequest.GetFile;
 using MessangersUI.HttpGetRequest.Ping;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestContact;
@@ -19,10 +20,12 @@ using Microsoft.VisualBasic.ApplicationServices;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
+using System.Diagnostics;
 using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -48,7 +51,8 @@ namespace MessangersUI
         public string _user;
         public Border _checkFile;
         public string _localpath;
-
+        public string _PathDirectory = AppDomain.CurrentDomain.BaseDirectory + "Uploads";
+        private Dictionary<long, bool> _downloadedFiles = new Dictionary<long, bool>();
         public class ChatItem
         {
             public string Type { get; set; }
@@ -94,6 +98,7 @@ namespace MessangersUI
         public ILogger<PostRequestOnlineUsers> _loggeronlineuser;
         public ILogger<PostRequestDeleteChatHistory> _loggerPostRequestDeleteChatHistory;
         public ExceptionDelegate _exceptionDelegate;
+        public ILogger<GetFileRequest> _loggrGetFile;
         public ILogger<PasswordhASH> _passwordpash;
         public CancellationTokenSource _source;
         public CancellationToken _CancellationToken;
@@ -124,6 +129,7 @@ namespace MessangersUI
         public PostRequestOnlineUsers _onlineUser;
         public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
         public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
+        public GetFileRequest _GetFileRequest;
         public main(HubConnection? hubconnection, string authtoken, string username, string user)
         {
             InitializeComponent();
@@ -167,6 +173,7 @@ namespace MessangersUI
             _loggerPostRequestHistorySaveFile = loggerFactory.CreateLogger<PostRequestHistorySaveFile>();
             _loggerPostRequestUpdateID = loggerFactory.CreateLogger<PostRequestUpdateID>();
             _loggerPostHistoryFiles = loggerFactory.CreateLogger<PostHistoryFiles>();
+            _loggrGetFile = loggerFactory.CreateLogger<GetFileRequest>();
 
 
 
@@ -338,6 +345,13 @@ namespace MessangersUI
             _jsonExceptionDelegate,
             _taskCanccelException
             );
+
+            _GetFileRequest = new GetFileRequest(_loggrGetFile,
+                _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
 
             ChatUserName.Text = _user;
             LoadHistory(_username, user);
@@ -589,7 +603,7 @@ namespace MessangersUI
             }
         }
 
-        public Border AddMessageFile(bool isCurrentUser, AttachmentMetadata attachment, string localPath = "")
+        public async Task<Border> AddMessageFile(bool isCurrentUser, AttachmentMetadata attachment, string localPath = "")
         {
             // 1. Основной блок сообщения
             var border = new Border
@@ -668,42 +682,108 @@ namespace MessangersUI
             };
             button.Content = buttonIcon;
 
-            // 6. Обработчик
-            if (isCurrentUser)
-            {
-                button.ToolTip = "Открыть файл";
-                button.Click += (s, e) =>
+
+                string fullPath = System.IO.Path.Combine(_PathDirectory, attachment.FileName);
+                var file = await SearchFile(attachment.FileName);
+
+                if (!string.IsNullOrEmpty(file) && file != "")
                 {
-                    if (string.IsNullOrEmpty(localPath) || !File.Exists(localPath))
+                    button.ToolTip = "Открыть файл";
+                    button.Click += (s, e) =>
                     {
-                        System.Windows.MessageBox.Show("Файл не найден", "Ошибка", MessageBoxButton.OK, MessageBoxImage.Warning);
-                        return;
-                    }
-                };
-            }
-            else
-            {
-                button.ToolTip = "Скачать файл";
-                button.Click += async (s, e) =>
+                        if (System.IO.File.Exists(file))
+                        {
+                            ProcessStartInfo startInfo = new ProcessStartInfo
+                            {
+                                FileName = file,
+                                UseShellExecute = true
+                            };
+                            using (Process process = new Process())
+                            {
+                                process.StartInfo = startInfo;
+                                process.Start();
+                            }
+                            return;
+                        }
+                        else
+                        {
+                            System.Windows.MessageBox.Show("Файл не найден. Возможно, он был удалён.");
+                        }
+                    };
+                }
+                else
                 {
-                    // TODO: ваш метод скачивания
-                    // await DownloadFile(attachment.Id);
-                    System.Windows.MessageBox.Show("Скачивание: " + attachment.FileName);
-                };
-            }
+                    button.ToolTip = "Скачать файл";
+                    button.Click += async (s, e) =>
+                    {
+                        var btn = s as System.Windows.Controls.Button;
+                        var att = btn?.Tag as AttachmentMetadata;
+                        if (att == null) return;
+
+                        if (_downloadedFiles.ContainsKey(att.Id) && _downloadedFiles[att.Id])
+                        {
+                            string path = System.IO.Path.Combine(_PathDirectory, att.FileName);
+                            if (File.Exists(path))
+                            {
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = path,
+                                    UseShellExecute = true
+                                });
+                            }
+                            return;
+                        }
+                        byte[] bytes = await _GetFileRequest.GetDowloadFile(attachment.Id);
+                            if (bytes != null)
+                            {
+                                System.Windows.MessageBox.Show("Скачивание: " + attachment.FileName);
+                                if (!Directory.Exists(_PathDirectory))
+                                {
+                                    Directory.CreateDirectory(_PathDirectory);
+                                }
+
+                                await System.IO.File.WriteAllBytesAsync(fullPath, bytes);
+                                System.Windows.MessageBox.Show("Успешно скачено");
+                            _downloadedFiles[att.Id] = true;
+                            button.ToolTip = "Открыть файл";
+                                if (button.Content is TextBlock iconBlock)
+                                {
+                                    iconBlock.Text = "📂";
+                                }
+                            }                 
+                    };
+                }
 
             // 7. Сборка
             Grid.SetColumn(icon, 0);
-            Grid.SetColumn(infoStack, 1);
-            Grid.SetColumn(button, 2);
+                Grid.SetColumn(infoStack, 1);
+                Grid.SetColumn(button, 2);
 
-            grid.Children.Add(icon);
-            grid.Children.Add(infoStack);
-            grid.Children.Add(button);
+                grid.Children.Add(icon);
+                grid.Children.Add(infoStack);
+                grid.Children.Add(button);
 
-            border.Child = grid;
+                border.Child = grid;
 
-            return border;
+                return border;
+            
+        }
+
+        public async Task<string> SearchFile(string Filename)
+        {
+            try
+            {
+                foreach (string fullPath in Directory.EnumerateFiles(_PathDirectory, Filename, SearchOption.AllDirectories))
+                {
+                    return fullPath;
+                }
+                return "";
+            }
+            catch(Exception ex)
+            {
+                System.Windows.MessageBox.Show("Ошибка поиска файла" + ex.Message);
+                return "";
+            }
         }
 
         public void AddMessageImage(string user, string message, bool isCurrentUser, AttachmentMetadata attachment)

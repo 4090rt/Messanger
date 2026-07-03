@@ -37,13 +37,13 @@ namespace MessangersUI.HttpGetRequest.GetFile
             _taskCanccelException = taskCanccelException;
         }
 
-        public async Task<byte[]> GetDowloadFile(AttachmentMetadata attachmentMetadata)
+        public async Task<byte[]> GetDowloadFile(long id)
         {
             try
             {
                 var client = _httpClientFactory.CreateClient("ClientHttp2.0");
 
-                var options = new HttpRequestMessage(HttpMethod.Get, $"https://localhost:7167/api/ControllerGetFile/download/{attachmentMetadata.Id}")
+                var options = new HttpRequestMessage(HttpMethod.Get, $"https://localhost:7167/api/ControllerGetFile/download/{id}")
                 {
                     Version = HttpVersion.Version20,
                     VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
