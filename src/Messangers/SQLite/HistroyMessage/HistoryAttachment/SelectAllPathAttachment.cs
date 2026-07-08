@@ -7,18 +7,18 @@ namespace Messangers.SQLite.HistroyMessage.HistoryAttachment
 {
     public class SelectAllPathAttachment
     {
+        private readonly IWebHostEnvironment _env;
         private readonly ILogger<SelectAllPathAttachment> _loggr;
         private readonly ExceptionDelegate _exceptionDelegate;
         private readonly SQLiteExceptionDelegate _sQLiteExceptionDelegate;
-        private readonly TaskCanccelException _taskCanccelException;
         private readonly PoolSQLite _poolSQLite;
 
-        public SelectAllPathAttachment(ILogger<SelectAllPathAttachment> loggr, ExceptionDelegate exceptionDelegate, SQLiteExceptionDelegate sQLiteExceptionDelegate, TaskCanccelException taskCanccelException, PoolSQLite poolSQLite)
+        public SelectAllPathAttachment(IWebHostEnvironment env, ILogger<SelectAllPathAttachment> loggr, ExceptionDelegate exceptionDelegate, SQLiteExceptionDelegate sQLiteExceptionDelegate,PoolSQLite poolSQLite)
         {
+            _env = env;
             _loggr = loggr;
             _exceptionDelegate = exceptionDelegate;
             _sQLiteExceptionDelegate = sQLiteExceptionDelegate;
-            _taskCanccelException = taskCanccelException;
             _poolSQLite = poolSQLite;
         }
 
@@ -35,24 +35,18 @@ namespace Messangers.SQLite.HistroyMessage.HistoryAttachment
                 { 
                     sqlcommand.Parameters.AddWithValue("@Id", id);
 
-                    var resultpath = await sqlcommand.ExecuteReaderAsync().ConfigureAwait(false);
+                    var result = await sqlcommand.ExecuteScalarAsync().ConfigureAwait(false);
+                    string rawPath = result?.ToString();
 
-                    if (resultpath != null)
-                    {
-                        var stringPath = resultpath.ToString();
-                        return stringPath;
-                    }
-                    else
-                    {
-                        _loggr.LogError($"Не удалось получить полный путь для файла {id}");
-                        return "Empty string";
-                    }
+                    if (string.IsNullOrEmpty(rawPath))
+                        return null;
+
+                    string cleanPath = rawPath.Trim().Replace(" ", "");
+
+                    string fullPath = Path.Combine(_env.ContentRootPath, cleanPath);
+
+                    return fullPath;
                 }
-            }
-            catch (TaskCanceledException ex)
-            {
-                await _taskCanccelException.RunDelegate(_taskCanccelException.Delegate, ex);
-                return "Empty string";
             }
             catch (SQLiteException ex)
             {

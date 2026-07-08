@@ -33,12 +33,11 @@ namespace Messangers.SQLite.HistroyMessage.HistoryAttachment
                 transaction = connection.BeginTransaction();
 
                 string command =
-                    "SELECT a.*, m.LoginUser1 " +
+                    "SELECT a.Id, a.MessageId, a.FileName, a.FilePath, a.FileSize, a.MimeType, a.CreatedAt, m.LoginUser1 " +
                     "FROM Attachments a " +
-                    "JOIN HistoryMessage m " +
-                    "ON a.MessageId = m.Id " +
-                    "WHERE (m.LoginUser1 = @CurrentUserId AND m.LoginUser2 = @OtherUserId)" +
-                    "OR (m.LoginUser1 = @OtherUserId AND m.LoginUser2 = @CurrentUserId) " +
+                    "JOIN HistoryMessage m ON a.MessageId = m.Id " +
+                    "WHERE (m.LoginUser1 = @CurrentUserId AND m.LoginUser2 = @OtherUserId) " +
+                    "   OR (m.LoginUser1 = @OtherUserId AND m.LoginUser2 = @CurrentUserId) " +
                     "ORDER BY m.Date DESC";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))

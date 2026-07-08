@@ -4,6 +4,7 @@ namespace Messangers.ModelData
 {
     public class AttachmentMetadata
     {
+        [JsonPropertyName("id")]
         public Int64 Id { get; set; }
 
         [JsonPropertyName("messageld")] // Обратите внимание: messageld (с маленькой L)
