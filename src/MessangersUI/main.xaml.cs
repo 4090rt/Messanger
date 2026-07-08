@@ -51,7 +51,8 @@ namespace MessangersUI
         public string _user;
         public Border _checkFile;
         public string _localpath;
-        public string _PathDirectory = AppDomain.CurrentDomain.BaseDirectory + "Uploads";
+        private static readonly string _PathDirectory =
+            System.IO.Path.GetFullPath(System.IO.Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "FilesUploads"));
         private Dictionary<long, bool> _downloadedFiles = new Dictionary<long, bool>();
         public class ChatItem
         {
@@ -364,6 +365,7 @@ namespace MessangersUI
                 var messagesTask = _PostRequestHistroyDowload.PostRequest(username, user);
                 var filesTask = _postHistoryFiles.Request(username, user);
 
+
                 await Task.WhenAll(messagesTask, filesTask);
 
                 var messages = await messagesTask;
@@ -373,15 +375,20 @@ namespace MessangersUI
 
                 if (messages != null)
                 {
+                    string stringdoch = "NotLoadedX02_!232@?32";
                     foreach (var msg in messages)
                     {
-                        chatItems.Add(new ChatItem
+                        if (msg.Message.Contains(stringdoch))
                         {
-                            Type = "Message",
-                            Data = msg,
-                            IsMyMessage = msg.LoginUser1 == username,
-                            Date = DateTime.TryParse(msg.Date, out var date) ? date : DateTime.MinValue
-                        });
+                            continue;
+                        }
+                                chatItems.Add(new ChatItem
+                                {
+                                    Type = "Message",
+                                    Data = msg,
+                                    IsMyMessage = msg.LoginUser1 == username,
+                                    Date = DateTime.TryParse(msg.Date, out var date) ? date : DateTime.MinValue
+                                });
                     }
                 }
 
@@ -401,7 +408,7 @@ namespace MessangersUI
 
                 chatItems = chatItems.OrderBy(x => x.Date).ToList();
 
-                await Dispatcher.InvokeAsync(() =>
+                await Dispatcher.InvokeAsync(async () =>
                 {
                     MessagesItemsControl.Items.Clear();
 
@@ -416,7 +423,7 @@ namespace MessangersUI
                         else if (item.Type == "File")
                         {
                             var file = (AttachmentMetadata)item.Data;
-                            var border = AddMessageFile(item.IsMyMessage, file);
+                            var border = await AddMessageFile(item.IsMyMessage, file);
                             MessagesItemsControl.Items.Add(border);
                         }
                     }
@@ -448,28 +455,19 @@ namespace MessangersUI
         private async void SendMessageButton_Click(object sender, RoutedEventArgs e)
         {
             string textMessage = MessageTextBox.Text;
-            var date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
             var attachment = ChatState.PendingAttachment;
-            if (textMessage == null || textMessage == "")
+            if (textMessage == null || textMessage == "" && attachment == null)
             {
-                if (attachment == null)
-                {
-                    return;
-                }
-                if (attachment.FileName != null)
-                {
-                    textMessage = attachment.FileName;
-                }
-                else
-                {
-                    System.Windows.MessageBox.Show("Выберите файл или напишите  сообщение");
-                }
+                return;
             }
-            if (textMessage != null && textMessage != "" && attachment != null && attachment.Id != 0)
-            {
-                textMessage = $"{textMessage}\n File:{attachment.FileName}";
+            var date = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss");
+            System.Windows.MessageBox.Show(textMessage);
+            if (textMessage == null || textMessage == "")
+            { 
+                textMessage = attachment.FileName + "NotLoadedX02_!232@?32";
             }
             var result = await _saveMessage.PostRequest(_username, _user, textMessage, date, "true");
+
             if (attachment == null || attachment.Id == 0)
             {
                 await _hubConnection.InvokeAsync("SendMessage", _user, textMessage, new AttachmentMetadata());
@@ -492,8 +490,12 @@ namespace MessangersUI
                 await Dispatcher.InvokeAsync(async () =>
                 {
                     MessageTextBox.Clear();
-                    AddMessage(_username, textMessage, true);
-                    AddMessageFile(true, attachment);
+                    if (textMessage != attachment.FileName)
+                    {
+                        AddMessage(_username, textMessage, true);
+                    }
+                    var border = await AddMessageFile(true, attachment);
+                    MessagesItemsControl.Items.Add(border);
                     ChatState.PendingAttachment = null;
                     if (_checkFile != null)
                     {
@@ -503,7 +505,6 @@ namespace MessangersUI
             }
             else
             {
-                System.Windows.MessageBox.Show("Бкез текста");
                 Int64 attachid = attachment.Id;
 
                 bool resultexec = await _postRequestUpdateID.RequestUpdate(result.id, attachid).ConfigureAwait(false);
@@ -512,7 +513,8 @@ namespace MessangersUI
                 await Dispatcher.InvokeAsync(async () =>
                 {
                     MessageTextBox.Clear();
-                    AddMessageFile(true, attachment);
+                    var border = await AddMessageFile(true, attachment);
+                    MessagesItemsControl.Items.Add(border);
                     ChatState.PendingAttachment = null;
                     if (_checkFile != null)
                     {
@@ -605,7 +607,6 @@ namespace MessangersUI
 
         public async Task<Border> AddMessageFile(bool isCurrentUser, AttachmentMetadata attachment, string localPath = "")
         {
-            // 1. Основной блок сообщения
             var border = new Border
             {
                 CornerRadius = new CornerRadius(10),
@@ -624,7 +625,7 @@ namespace MessangersUI
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            // 3. Иконка файла
+   
             var icon = new TextBlock
             {
                 Text = "📁",
@@ -633,7 +634,6 @@ namespace MessangersUI
                 VerticalAlignment = VerticalAlignment.Center
             };
 
-            // 4. Информация
             var infoStack = new StackPanel();
 
             var nameText = new TextBlock
@@ -658,7 +658,6 @@ namespace MessangersUI
             infoStack.Children.Add(nameText);
             infoStack.Children.Add(sizeText);
 
-            // 5. Кнопка
             var button = new System.Windows.Controls.Button
             {
                 Width = 32,
@@ -672,7 +671,6 @@ namespace MessangersUI
                 VerticalAlignment = VerticalAlignment.Center
             };
 
-            // Иконка кнопки
             var buttonIcon = new TextBlock
             {
                 Text = isCurrentUser ? "📂" : "⬇",
@@ -683,8 +681,9 @@ namespace MessangersUI
             button.Content = buttonIcon;
 
 
-                string fullPath = System.IO.Path.Combine(_PathDirectory, attachment.FileName);
+            string fullPath = System.IO.Path.Combine(_PathDirectory, attachment.FileName);
                 var file = await SearchFile(attachment.FileName);
+
 
                 if (!string.IsNullOrEmpty(file) && file != "")
                 {
@@ -693,11 +692,13 @@ namespace MessangersUI
                     {
                         if (System.IO.File.Exists(file))
                         {
+                            System.Windows.MessageBox.Show("Нашел файл" + _PathDirectory);
                             ProcessStartInfo startInfo = new ProcessStartInfo
                             {
                                 FileName = file,
                                 UseShellExecute = true
                             };
+                            System.Windows.MessageBox.Show("Открытие");
                             using (Process process = new Process())
                             {
                                 process.StartInfo = startInfo;
@@ -713,18 +714,26 @@ namespace MessangersUI
                 }
                 else
                 {
-                    button.ToolTip = "Скачать файл";
+                button.ToolTip = "Скачать файл";
                     button.Click += async (s, e) =>
                     {
+                        System.Windows.MessageBox.Show("Файл не найден скачиваю!");
                         var btn = s as System.Windows.Controls.Button;
-                        var att = btn?.Tag as AttachmentMetadata;
-                        if (att == null) return;
-
-                        if (_downloadedFiles.ContainsKey(att.Id) && _downloadedFiles[att.Id])
+                        System.Windows.MessageBox.Show("Файл не найден скачиваю2!");
+                        if (attachment == null)
                         {
-                            string path = System.IO.Path.Combine(_PathDirectory, att.FileName);
+                            System.Windows.MessageBox.Show("attach null");
+                            return;
+                        }
+                        System.Windows.MessageBox.Show("ищу файл в скачанных");
+                        if (_downloadedFiles.ContainsKey(attachment.Id) && _downloadedFiles[attachment.Id])
+                        {
+                            System.Windows.MessageBox.Show("Файл найден");
+                            string path = System.IO.Path.Combine(_PathDirectory, attachment.FileName);
+                            System.Windows.MessageBox.Show("путь сформирован");
                             if (File.Exists(path))
                             {
+                                System.Windows.MessageBox.Show("Открываю");
                                 Process.Start(new ProcessStartInfo
                                 {
                                     FileName = path,
@@ -733,7 +742,11 @@ namespace MessangersUI
                             }
                             return;
                         }
-                        byte[] bytes = await _GetFileRequest.GetDowloadFile(attachment.Id);
+                        else
+                        {
+                            System.Windows.MessageBox.Show("Файл не найден");
+                            byte[] bytes = await _GetFileRequest.GetDowloadFile(attachment.Id);
+  
                             if (bytes != null)
                             {
                                 System.Windows.MessageBox.Show("Скачивание: " + attachment.FileName);
@@ -744,16 +757,16 @@ namespace MessangersUI
 
                                 await System.IO.File.WriteAllBytesAsync(fullPath, bytes);
                                 System.Windows.MessageBox.Show("Успешно скачено");
-                            _downloadedFiles[att.Id] = true;
-                            button.ToolTip = "Открыть файл";
+                                _downloadedFiles[attachment.Id] = true;
+                                button.ToolTip = "Открыть файл";
                                 if (button.Content is TextBlock iconBlock)
                                 {
                                     iconBlock.Text = "📂";
                                 }
-                            }                 
+                            }
+                        }
                     };
                 }
-
             // 7. Сборка
             Grid.SetColumn(icon, 0);
                 Grid.SetColumn(infoStack, 1);
@@ -765,14 +778,18 @@ namespace MessangersUI
 
                 border.Child = grid;
 
-                return border;
-            
+                return border;     
         }
 
         public async Task<string> SearchFile(string Filename)
         {
             try
             {
+                if (!Directory.Exists(_PathDirectory))
+                {
+                    System.Windows.MessageBox.Show("Нет папки создаю");
+                    Directory.CreateDirectory(_PathDirectory);
+                }
                 foreach (string fullPath in Directory.EnumerateFiles(_PathDirectory, Filename, SearchOption.AllDirectories))
                 {
                     return fullPath;
@@ -894,8 +911,23 @@ namespace MessangersUI
             openFileDialog.Title = "Выберите файл для отправки";
 
             if (openFileDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            { 
+            {
+                if (!Directory.Exists(_PathDirectory))
+                {
+                    System.Windows.MessageBox.Show("Создаю директорию" + _PathDirectory);
+                    Directory.CreateDirectory(_PathDirectory);
+                }
+
                 string filepath = openFileDialog.FileName;
+                string fileName = System.IO.Path.GetFileName(filepath);
+                string fullpath = System.IO.Path.Combine(_PathDirectory, fileName);
+
+                byte[] allbytes = await System.IO.File.ReadAllBytesAsync(filepath);
+
+                await System.IO.File.WriteAllBytesAsync(fullpath, allbytes);
+
+                System.Windows.MessageBox.Show("Файл выбран и записан в приложение");
+
                 Dispatcher.Invoke(() =>
                 {
                     Border messageBorder = null;

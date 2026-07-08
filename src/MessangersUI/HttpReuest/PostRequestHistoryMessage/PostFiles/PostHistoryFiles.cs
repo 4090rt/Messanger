@@ -74,6 +74,8 @@ namespace MessangersUI.HttpReuest.PostRequestHistoryMessage.PostFiles
 
                     var deserialize = JsonSerializer.Deserialize<AttachmentsResponse>(result);
 
+
+                    System.Windows.MessageBox.Show("Возвращено" + deserialize.message.Count + "Файлов");
                     return deserialize.message;
                 }
                 else

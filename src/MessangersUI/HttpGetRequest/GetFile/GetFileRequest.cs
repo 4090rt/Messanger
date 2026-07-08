@@ -41,39 +41,55 @@ namespace MessangersUI.HttpGetRequest.GetFile
         {
             try
             {
+                MessageBox.Show("Запрос на скачивание файла");
                 var client = _httpClientFactory.CreateClient("ClientHttp2.0");
 
-                var options = new HttpRequestMessage(HttpMethod.Get, $"https://localhost:7167/api/ControllerGetFile/download/{id}")
+                var options = new HttpRequestMessage(HttpMethod.Get, $"https://localhost:7167/api/ControllerFileDowload/download/{id}")
                 {
                     Version = HttpVersion.Version20,
                     VersionPolicy = HttpVersionPolicy.RequestVersionOrHigher
                 };
-
+                MessageBox.Show("запрос настроен");
                 HttpResponseMessage httpResponseMessage = await client.SendAsync(options).ConfigureAwait(false);
+                MessageBox.Show("Запрос сделан");
                 if (httpResponseMessage.IsSuccessStatusCode)
                 {
+                    MessageBox.Show("1");
                     byte[] bytes = await httpResponseMessage.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                    
-                    return bytes;
+
+                    if (bytes != null)
+                    {
+                        MessageBox.Show("bytes not null");
+                        return bytes;
+                    }
+                    else
+                    {
+                        MessageBox.Show("bytes null");
+                        return null;
+                    }
                 }
                 else
                 {
+                    MessageBox.Show("bytes null0" + httpResponseMessage.StatusCode);
                     _logger.LogError("Ошибка запроса. посткод:" + httpResponseMessage.StatusCode);
                     return null;
                 }
             }
             catch (TaskCanceledException ex)
             {
+                MessageBox.Show("bytes null1");
                 await _taskCanccelException.RunDelegate(_taskCanccelException.Delegate, ex);
                 return null;
             }
             catch (HttpRequestException ex)
             {
+                MessageBox.Show("bytes null2");
                 await _httpExceptionDelegate.RunDelegate(_httpExceptionDelegate.Delegate, ex);
                 return null;
             }
             catch (Exception ex)
             {
+                MessageBox.Show("bytes null3");
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
                 return null;
             }
