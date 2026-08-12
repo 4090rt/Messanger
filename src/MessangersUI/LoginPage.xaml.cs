@@ -340,8 +340,7 @@ namespace MessangersUI
 
         private async void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Операция отменена!"));
-            _source.Cancel();
+            NavigationService?.Navigate(new RegistrPage());
         }
     }
 }

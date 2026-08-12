@@ -11,5 +11,7 @@ namespace MessangersUI.DataModel
         public string Login { get; set; }
         public string cachePassword { get; set; }
         public DateTime date = DateTime.Now;
+        public string Tnumber { get; set; }
+        public string Mail { get; set; }
     }
 }

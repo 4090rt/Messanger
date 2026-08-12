@@ -48,11 +48,12 @@ namespace MessangersUI
         string Login = "";
         string Password = "";
         string RepeatPassword = "";
+        string Number = "";
+        string Mail = "";
 
         public RegistrPage()
         {
             InitializeComponent();
-            LabelTime.Content = DateTime.Now;
 
             _source = new CancellationTokenSource();
             _CancellationToken = _source.Token;
@@ -88,6 +89,9 @@ namespace MessangersUI
                 Login = TextLogin.Text;
                 Password = TextPassword.Password;
                 RepeatPassword = TextPasswordRepeat.Password;
+                Number = TextNumber.Text;
+                Mail = TextMail.Text;
+                
                 List<DataRegistr> datalist = new List<DataRegistr>();
 
                 if (Login.Length > 3 && Password.Length > 8 && RepeatPassword.Length > 8)
@@ -104,7 +108,9 @@ namespace MessangersUI
                         {
                             Login = Login,
                             cachePassword = CachedPassword,
-                            date = DateTime.Now
+                            date = DateTime.Now,
+                            Tnumber = Number ?? "None",
+                            Mail = Mail ?? "None"
                         };
 
 
@@ -114,7 +120,7 @@ namespace MessangersUI
                         }
 
                         datalist.Add(result);
-                        await Dispatcher.InvokeAsync(() => System.Windows.MessageBox.Show("Регистрирую.."));
+
                         var resultat = await _PostRegisterRequest.RequestMETHOD(datalist, _CancellationToken).ConfigureAwait(false);
 
                         if (resultat.succes == true)

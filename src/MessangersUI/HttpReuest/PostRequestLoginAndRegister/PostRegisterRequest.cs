@@ -49,8 +49,11 @@ namespace MessangersUI.HttpReuest.PostRequestLoginAndRegister
                 {
                     login = registrData.Login,
                     password = registrData.cachePassword,
-                    datetime = DateTime.Now
+                    datetime = DateTime.Now,
+                    Tnumber = registrData.Tnumber,
+                    Mail = registrData.Mail,        
                 };
+
                 var options = new HttpRequestMessage(HttpMethod.Post, "https://localhost:7167/api/PostControllerRegister/register")
                 {
                     Version = HttpVersion.Version20,
@@ -75,16 +78,24 @@ namespace MessangersUI.HttpReuest.PostRequestLoginAndRegister
                 }
                 else
                 {
-                    string errorBody = await recpon.Content.ReadAsStringAsync();
+                    byte[] arraybytes = await recpon.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
 
-                    _logger.LogError($"❌ Статус: {recpon.StatusCode}");
-                    _logger.LogError($"❌ Тело ошибки: {errorBody}");
-                    _logger.LogError($"❌ Заголовки: {string.Join(", ", recpon.Headers.Select(h => $"{h.Key}: {string.Join(",", h.Value)}"))}");
+                    string errorbody = System.Text.Encoding.UTF8.GetString(arraybytes);
 
-                   
-                        System.Windows.MessageBox.Show($"Ошибка {recpon.StatusCode}: {errorBody}");
+                    _logger.LogError("❌ Статус: {StatusCode}", recpon.StatusCode);
+                    _logger.LogError("❌ Тело ошибки: {ErrorBody}", errorbody);
 
-                    return (false, errorBody);
+                    var headerbuilder = new StringBuilder();
+                    foreach (var item in recpon.Headers)
+                    {
+                        headerbuilder.Append($"{item.Key}: {string.Join(",", item.Value)}; ");
+                    }
+                    string headers = headerbuilder.ToString();
+                    _logger.LogError("❌ Заголовки: {Headers}", headers);
+
+                    System.Windows.MessageBox.Show($"Ошибка контроллера", recpon.StatusCode.ToString());
+
+                    return (false, errorbody);
                 }
 
             }
