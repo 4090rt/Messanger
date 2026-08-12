@@ -35,10 +35,12 @@ namespace Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegister
 
                 await using (sQLiteTransaction = connection.BeginTransaction())
                 {
-                    string comand = $"INSERT INTO [RegisterBase] (Login, Password, DateRegistration) VALUES (@L, @P, @D)";
+                    string comand = $"INSERT INTO [RegisterBase] (TNumber, Mail, Login,Password, DateRegistration) VALUES (@T, @M, @L, @P, @D)";
 
                     await using (var sqlcommand = new SQLiteCommand(comand, connection, sQLiteTransaction))
                     {
+                        sqlcommand.Parameters.AddWithValue("@T", modelDataRegister.Tnumber);
+                        sqlcommand.Parameters.AddWithValue("@M", modelDataRegister.Mail);
                         sqlcommand.Parameters.AddWithValue("@L", modelDataRegister.Login);
                         sqlcommand.Parameters.AddWithValue("@P", modelDataRegister.Password);
                         sqlcommand.Parameters.AddWithValue("@D", modelDataRegister.datetime);
@@ -59,12 +61,32 @@ namespace Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegister
             catch (SQLiteException ex)
             {
                 await _sQLiteExceptionDelegate.RunDelegate(_sQLiteExceptionDelegate.Delegate, ex);
-                await (sQLiteTransaction?.RollbackAsync() ?? Task.CompletedTask);
+                if (sQLiteTransaction != null)
+                {
+                    try
+                    {
+                        await (sQLiteTransaction?.RollbackAsync() ?? Task.CompletedTask);
+                    }
+                    catch (Exception exTranz)
+                    {
+                        return;
+                    }
+                }
             }
             catch (Exception ex)
             {
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
-                await (sQLiteTransaction?.RollbackAsync() ?? Task.CompletedTask);
+                if (sQLiteTransaction != null)
+                {
+                    try
+                    {
+                        await (sQLiteTransaction?.RollbackAsync() ?? Task.CompletedTask);
+                    }
+                    catch (Exception exTranz)
+                    {
+                        return;
+                    }
+                }
             }
             finally
             {

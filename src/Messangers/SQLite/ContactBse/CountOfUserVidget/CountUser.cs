@@ -55,7 +55,7 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
                 connection = _poolSQLite.ConnectionOpen();
                 transaction = connection.BeginTransaction();
 
-                string command = "SELECT COUNT(*) FROM ContactUserBD WHERE Name = @N";
+                string command = "SELECT COUNT(*) FROM ContactUserBD WHERE UserName = @N";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))
                 {
@@ -105,7 +105,7 @@ namespace Messangers.SQLite.ContactBse.CountOfUserVidget
             {
                 connection = _poolSQLite.ConnectionOpen();
 
-                string command = "CREATE INDEX IF NOT EXISTS IX_ContactUserBDCountContacts ON ContactUserBD(Name)";
+                string command = "CREATE INDEX IF NOT EXISTS IX_ContactUserBDCountContacts ON ContactUserBD(UserName)";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection))
                 { 

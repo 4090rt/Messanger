@@ -53,7 +53,7 @@ namespace Messangers.SQLite.ContactBse.DeleteContact
                 connection = _poolSQLiteConnection.ConnectionOpen();
                 sqliteTransaction = connection.BeginTransaction();
 
-                string command = "DELETE FROM ContactUserBD WHERE Name = @N AND UserName = @U";  
+                string command = "DELETE FROM ContactUserBD WHERE UserName = @N AND LoginContact = @U";  
                 await using (var sqlcommand = new SQLiteCommand(command, connection, sqliteTransaction))
                 {
                     sqlcommand.Parameters.AddWithValue("@N", username);
@@ -93,7 +93,7 @@ namespace Messangers.SQLite.ContactBse.DeleteContact
             {
                 connection = _poolSQLiteConnection.ConnectionOpen();
 
-                string command = "CREATE INDEX IF NOT EXISTS IX_ContactUserBD_DELETEINDEX ON ContactUserBD(Name, UserName)";
+                string command = "CREATE INDEX IF NOT EXISTS IX_ContactUserBD_DELETEINDEX ON ContactUserBD(UserName, LoginContact)";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection))
                 {

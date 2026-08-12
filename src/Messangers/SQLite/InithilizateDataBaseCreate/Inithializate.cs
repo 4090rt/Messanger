@@ -30,7 +30,7 @@ namespace Messangers.SQLite.InithilizateDataBaseCreate
             _logger.LogWarning("Инициализация баз  RegisterBase, ProviderUserBase, UserContact, HistoryMessage");
             try
             {
-                await _createRegisterBase.pROVERKA();
+                await _createRegisterBase.pROVERKA().ConfigureAwait(false);
                 _logger.LogWarning("Успешно инициализированна");
                 return true;
             }

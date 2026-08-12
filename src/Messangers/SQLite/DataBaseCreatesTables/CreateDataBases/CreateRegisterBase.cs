@@ -29,7 +29,7 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
 
             if (_isCheckedCreate == false)
             {
-                var result1 = await CreateRegisterBases();;
+                var result1 = await CreateRegisterBases();
 
                 if (result1)
                 {
@@ -38,7 +38,6 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
                     if (result2)
                     {
                         var result3 = await CreateDataBaseUserCoNTACT();
-
                         if (result3)
                         {
                             var result4 = await CreateDataBaseHistroyMesage();
@@ -67,6 +66,9 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
 
                 string command = "CREATE TABLE IF NOT EXISTS RegisterBase (" +
                     "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    "TNumber TEXT," +
+                    "Mail TEXT," +
+                    "Avatar BLOB," +
                     "Login TEXT NOT NULL," +
                     "Password TEXT NOT NULL," +
                     "DateRegistration TEXT NOT NULL)";
@@ -145,9 +147,9 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
 
                 string command = "CREATE TABLE IF NOT EXISTS ContactUserBD(" +
                     "Id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                    "Name TEXT NOT NULL," +
                     "UserName TEXT NOT NULL," +
-                    "photo TEXT NOT NULL)";
+                    "LoginContact TEXT NOT NULL," +
+                    "Photo TEXT NOT NULL)";
 
                 await using (var commandsql = new SQLiteCommand(command, connection))
                 { 

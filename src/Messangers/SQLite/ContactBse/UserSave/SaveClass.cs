@@ -35,7 +35,7 @@ namespace Messangers.SQLite.ContactBse.UserSave
                     connection = _poolSQLiteConnection.ConnectionOpen();
                     transaction = connection.BeginTransaction();
 
-                    string command = "INSERT INTO [ContactUserBD] (Name, UserName, Photo) VALUES (@U, @L, @P)";
+                    string command = "INSERT INTO [ContactUserBD] (UserName, LoginContact, Photo) VALUES (@U, @L, @P)";
 
                     await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))
                     {
@@ -46,11 +46,9 @@ namespace Messangers.SQLite.ContactBse.UserSave
                         int rows = await sqlcommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                         if (rows > 0)
                         {
-                            _logger.LogInformation($"Информация о контакте сохранена. Затронуто строк: {rows}");
                         }
                         else
                         {
-                            _logger.LogWarning($"Информация о контакте не сохранена. Затронуто строк: {rows}");
                         }
                     }
                     await transaction.CommitAsync().ConfigureAwait(false);

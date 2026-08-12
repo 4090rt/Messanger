@@ -56,23 +56,19 @@ namespace Messangers.SQLite.ContactBse.UserSearchContact
                 connection = _poolSQLiteConnection.ConnectionOpen();
                 transaction = connection.BeginTransaction();
 
-                string command = "SELECT * FROM ContactUserBD WHERE Name = @U";
+                string command = "SELECT * FROM ContactUserBD WHERE UserName = @U";
 
                 await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))
                 {
-                    _logger.LogWarning("команжа выполнена");
                     sqlcommand.Parameters.AddWithValue("@U", Username);
-                    _logger.LogWarning("команжа выполнена2");
                     var result = await sqlcommand.ExecuteReaderAsync().ConfigureAwait(false);
-                    _logger.LogWarning("команжа выполнена3");
 
                     while (await result.ReadAsync())
                         {
                         string contactName = result.IsDBNull(2) ? "" : result.GetString(2);
-                        _logger.LogWarning($"Имя контакта (индекс 2): '{contactName}'");
 
                         string yourName = result.IsDBNull(1) ? "" : result.GetString(1);
-                        _logger.LogWarning($"Ваше имя (индекс 1): '{yourName}'");
+ 
 
                         string photo = result.IsDBNull(3) ? "" : result.GetString(3);
 
@@ -91,14 +87,12 @@ namespace Messangers.SQLite.ContactBse.UserSearchContact
             }
             catch (SQLiteException ex)
             {
-                _logger.LogWarning("1");
                 await _sQLiteExceptionDelegate.RunDelegate(_sQLiteExceptionDelegate.Delegate, ex);
                 await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 return new List<UserContact>();
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("2");
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
                 await (transaction?.RollbackAsync() ?? Task.CompletedTask);
                 return new List<UserContact>();
