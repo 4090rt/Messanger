@@ -3,6 +3,7 @@ using MessangersUI.DataModel;
 using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
 using MessangersUI.HttpGetRequest.Ping;
+using MessangersUI.HttpReuest.PostRequestAvatar;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage;
@@ -47,21 +48,25 @@ namespace MessangersUI
         public ILogger<HttpPostRequestValidationContact> _loggervalidcontact;
         public ILogger<PostRequestCount> _loggercountcon;
         public ILogger<PostRequestOnlineUsersValidate> _loggervalidateonline;
-        public PostRegisterRequest _PostRegisterRequest;
-        public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
-        public ILogger<PostRequestOnlineUsers> _loggeronlineuser;
-        public ExceptionDelegate _exceptionDelegate;
         public ILogger<PasswordhASH> _passwordpash;
         public ILogger<PostRequestDeleteChatHistory> _loggerPostRequestDeleteChatHistory;
+        public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
+        public ILogger<PostRequestOnlineUsers> _loggeronlineuser;
+        public ILogger<PostMethodAvatar> _logeraatar;
+        private readonly ILogger<PostLoginRequest> _loggerlog;
+
+        private readonly IMemoryCache _memoryCache;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IServiceCollection _serviceDescriptors;
+
+        public PostRegisterRequest _PostRegisterRequest;
+        public ExceptionDelegate _exceptionDelegate;
         public CancellationTokenSource _source;
         public CancellationToken _CancellationToken;
         public MainWindow _MainWindow;
-        private readonly ILogger<PostLoginRequest> _loggerlog;
-        private readonly IHttpClientFactory _httpClientFactory;
         private readonly HttpExceptionDelegate _httpExceptionDelegate;
         private readonly JsonExceptionDelegate _jsonExceptionDelegate;
         private readonly TaskCanccelException _taskCanccelException;
-        private readonly IServiceCollection _serviceDescriptors;
         private readonly FabricNotification _fabricNotification;
         private readonly PasswordhASH _passwordhASH;
         private readonly PostLoginRequest _postLoginRequest;
@@ -70,7 +75,6 @@ namespace MessangersUI
         public PostProviderClient _PostProviderClient;
         public RequesetInfoProviders _RequestProviderClient;
         public LoginPage _loginpage;
-        private readonly IMemoryCache _memoryCache;
         private readonly PingRequestServerMessang _pingRequestServerMessang;
         public SearchUserPost _sarcuuser;
         public PostRequestContacts _postRequestContacts;
@@ -82,6 +86,7 @@ namespace MessangersUI
         public PostRequestOnlineUsers _onlineUser;
         public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
         public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
+        public PostMethodAvatar _postmethodavatar;
         string Login = "";
         string Password = "";
         public  LoginPage()
@@ -118,6 +123,8 @@ namespace MessangersUI
             _loggeronlineuser = loggerFactory.CreateLogger<PostRequestOnlineUsers>();
             _loggerPostRequestAddFirstUserContact = loggerFactory.CreateLogger<PostRequestAddFirstUserContact>();
             _loggerPostRequestDeleteChatHistory = loggerFactory.CreateLogger<PostRequestDeleteChatHistory>();
+            _logeraatar = loggerFactory.CreateLogger<PostMethodAvatar>();
+          
 
 
             var services = new ServiceCollection();
@@ -235,6 +242,13 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _postmethodavatar = new PostMethodAvatar(_logeraatar,
+                 _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
 
         }
         public async Task RequestLogin()
@@ -283,7 +297,8 @@ namespace MessangersUI
                                     _postRequestCount,
                                     _PostRequestAddFirstUserContact,
                                     _onlineUser,
-                                    _PostRequestDeleteChatHistory
+                                    _PostRequestDeleteChatHistory,
+                                    _postmethodavatar
                                     );
                                 _MainWindow.Show();
                                 Window windowToClose = (Window)this.Parent;

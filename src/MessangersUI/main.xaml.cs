@@ -5,6 +5,7 @@ using MessangersUI.Delegate;
 using MessangersUI.HasihingPass;
 using MessangersUI.HttpGetRequest.GetFile;
 using MessangersUI.HttpGetRequest.Ping;
+using MessangersUI.HttpReuest.PostRequestAvatar;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
@@ -67,20 +68,11 @@ namespace MessangersUI
         }
 
         public ILogger<PostRequestSaveMessage> _loggersavemessage;
-        public PostRequestSaveMessage _saveMessage;
-
         public ILogger<PostRequestHistroyDowload> _loggerPostRequestHistroyDowload;
-        PostRequestHistroyDowload _PostRequestHistroyDowload;
         public ILogger<PostRequestDeleteConcrectEsaage> _loggerPostRequestDeleteConcrectEsaage;
-        public PostRequestDeleteConcrectEsaage _PostRequestDeleteConcrectEsaage;
-        public PostRequestHistorySaveFile _PostRequestHistorySaveFile;
         public ILogger<PostRequestHistorySaveFile> _loggerPostRequestHistorySaveFile;
-        public PostRequestUpdateID _postRequestUpdateID;
         public ILogger<PostRequestUpdateID> _loggerPostRequestUpdateID;
-        public PostHistoryFiles _postHistoryFiles;
         public ILogger<PostHistoryFiles> _loggerPostHistoryFiles;
-
-
         public ILogger<PostRequestAddFirstUserContact> _loggerPostRequestAddFirstUserContact;
         public ILogger<RegistrPage> _logger;
         public ILogger<GetRequestPing> _pinglogger;
@@ -94,22 +86,18 @@ namespace MessangersUI
         public ILogger<HttpPostRequestValidationContact> _loggervalidcontact;
         public ILogger<PostRequestCount> _loggercountcon;
         public ILogger<PostRequestOnlineUsersValidate> _loggervalidateonline;
-        public PostRegisterRequest _PostRegisterRequest;
         public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
         public ILogger<PostRequestOnlineUsers> _loggeronlineuser;
         public ILogger<PostRequestDeleteChatHistory> _loggerPostRequestDeleteChatHistory;
-        public ExceptionDelegate _exceptionDelegate;
         public ILogger<GetFileRequest> _loggrGetFile;
         public ILogger<PasswordhASH> _passwordpash;
-        public CancellationTokenSource _source;
-        public CancellationToken _CancellationToken;
-        public MainWindow _MainWindow;
+        public ILogger<PostMethodAvatar> _logeraatar;
         private readonly ILogger<PostLoginRequest> _loggerlog;
+
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly HttpExceptionDelegate _httpExceptionDelegate;
-        private readonly JsonExceptionDelegate _jsonExceptionDelegate;
-        private readonly TaskCanccelException _taskCanccelException;
         private readonly IServiceCollection _serviceDescriptors;
+        private readonly IMemoryCache _memoryCache;
+
         private readonly FabricNotification _fabricNotification;
         private readonly PasswordhASH _passwordhASH;
         private readonly PostLoginRequest _postLoginRequest;
@@ -118,19 +106,33 @@ namespace MessangersUI
         public PostProviderClient _PostProviderClient;
         public RequesetInfoProviders _RequestProviderClient;
         public LoginPage _loginpage;
-        private readonly IMemoryCache _memoryCache;
+        public PostRequestSaveMessage _saveMessage;
+        PostRequestHistroyDowload _PostRequestHistroyDowload;
         private readonly PingRequestServerMessang _pingRequestServerMessang;
         public SearchUserPost _sarcuuser;
+        public PostRequestDeleteConcrectEsaage _PostRequestDeleteConcrectEsaage;
+        public PostRequestHistorySaveFile _PostRequestHistorySaveFile;
         public PostRequestContacts _postRequestContacts;
         public PostRequestUserContactList _PostRequestUserContactList;
         public PostRequestDeleteContact _deleteContact;
+        public PostRequestUpdateID _postRequestUpdateID;
         public HttpPostRequestValidationContact _postRequestValidationContact;
         public PostRequestCount _postRequestCount;
+        public PostHistoryFiles _postHistoryFiles;
+        public ExceptionDelegate _exceptionDelegate;
         public PostRequestOnlineUsersValidate _postRequestOnlineUsersValidate;
         public PostRequestOnlineUsers _onlineUser;
+        public CancellationTokenSource _source;
+        public CancellationToken _CancellationToken;
+        public MainWindow _MainWindow;
+        public PostRegisterRequest _PostRegisterRequest;
         public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
         public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
         public GetFileRequest _GetFileRequest;
+        private readonly HttpExceptionDelegate _httpExceptionDelegate;
+        private readonly JsonExceptionDelegate _jsonExceptionDelegate;
+        private readonly TaskCanccelException _taskCanccelException;
+        public PostMethodAvatar _postmethodavatar;
         public main(HubConnection? hubconnection, string authtoken, string username, string user)
         {
             InitializeComponent();
@@ -175,6 +177,7 @@ namespace MessangersUI
             _loggerPostRequestUpdateID = loggerFactory.CreateLogger<PostRequestUpdateID>();
             _loggerPostHistoryFiles = loggerFactory.CreateLogger<PostHistoryFiles>();
             _loggrGetFile = loggerFactory.CreateLogger<GetFileRequest>();
+            _logeraatar = loggerFactory.CreateLogger<PostMethodAvatar>();
 
 
 
@@ -353,6 +356,15 @@ namespace MessangersUI
                 _httpExceptionDelegate,
                 _jsonExceptionDelegate,
                 _taskCanccelException);
+
+            _postmethodavatar = new PostMethodAvatar(_logeraatar,
+                 _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
+
 
             ChatUserName.Text = _user;
             LoadHistory(_username, user);
@@ -899,7 +911,8 @@ namespace MessangersUI
                                     _postRequestCount,
                                     _PostRequestAddFirstUserContact,
                                     _onlineUser,
-                                    _PostRequestDeleteChatHistory);
+                                    _PostRequestDeleteChatHistory,
+                                    _postmethodavatar);
             MainWindow.Show();
             this.Close();
         }

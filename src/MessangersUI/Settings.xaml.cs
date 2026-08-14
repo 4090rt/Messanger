@@ -35,9 +35,9 @@ namespace MessangersUI
             _username = username;
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private async void Button_Click(object sender, RoutedEventArgs e)
         {
-            if (!string.IsNullOrEmpty(_username))
+            if (string.IsNullOrEmpty(_username))
                 return;
 
             AvatarMetaData avatarMetaData = new AvatarMetaData();
@@ -53,10 +53,10 @@ namespace MessangersUI
 
                 string filepathString = filepath.ToString();
 
-                _avatarmetadata.Filepath = filepathString ?? string.Empty;
                 avatarMetaData.expansion = System.IO.Path.GetExtension(filepathString ?? string.Empty);
 
-                if (avatarMetaData.expansion != ".jpg" || avatarMetaData.expansion != ".png")
+
+                if (avatarMetaData.expansion != ".jpg" && avatarMetaData.expansion != ".png")
                 {
                     System.Windows.MessageBox.Show("Неверный формат");
                 }
@@ -71,13 +71,11 @@ namespace MessangersUI
 
                     avatarMetaData.FileSize = sizemb;
                     avatarMetaData.UserName = _username;
+                    avatarMetaData.Filepath = filepathString ?? string.Empty;
 
                     if (sizemb > maxsize)
                     {
-                        this.Loaded += async (s, e) =>
-                        {
-                            await _postMethodAvatar.RequestMethod(avatarMetaData).ConfigureAwait(false);
-                        };
+                        await _postMethodAvatar.RequestMethod(avatarMetaData).ConfigureAwait(false);
                     }
                     else
                     {
