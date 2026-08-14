@@ -18,7 +18,7 @@ namespace Messangers.Delegate
 
         public async Task Delegate(SQLiteException ex)
         {
-            _logger.LogError("Возникло необработанное SQLite исключение " + ex.Message, "место: " + ex.StackTrace, "полное исключение " + ex.InnerException);
+            _logger.LogError($"Возникло необработанное SQLite исключение {ex.StackTrace}" + ex.Message, "место: " + ex.StackTrace, "полное исключение " + ex.InnerException);
         }
     }
 }

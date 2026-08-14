@@ -4,6 +4,7 @@ using Messangers.EthernetRequest;
 using Messangers.JWToken;
 using Messangers.ModelData;
 using Messangers.SignalSettings.Hubs;
+using Messangers.SQLite.AvatarAdd;
 using Messangers.SQLite.ContactBse;
 using Messangers.SQLite.ContactBse.CountOfUserVidget;
 using Messangers.SQLite.ContactBse.DeleteContact;
@@ -58,6 +59,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/chatHub"))
                 {
                     context.Token = accessToken;
+                    Console.WriteLine("НОВАЯ ВЕРСИЯ 2025! ВИДНО?");
                     Console.WriteLine("✅ Токен установлен в контекст");
 
                 }
@@ -82,6 +84,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddScoped<Inithializate>();
 builder.Services.AddScoped<PoolSQLite>();
 builder.Services.AddScoped<ExceptionDelegate>();
+builder.Services.AddScoped<InvalidExcaptionDelegate>();
 builder.Services.AddScoped<SQLiteExceptionDelegate>();
 builder.Services.AddScoped<CreateRegisterBase>();
 builder.Services.AddScoped<SaveRequestInBdRegister>();
@@ -110,6 +113,7 @@ builder.Services.AddScoped<FileHistory>();
 builder.Services.AddScoped<CheckUserInBD>();  
 builder.Services.AddScoped<CheckHashPasswordFromBD>();
 builder.Services.AddScoped<SelectAllPathAttachment>();
+builder.Services.AddScoped<AvatarUpdate>();
 
 // 2. Настройка конфигурации
 builder.Configuration

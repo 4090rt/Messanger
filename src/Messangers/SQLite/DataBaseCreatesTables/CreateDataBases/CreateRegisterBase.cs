@@ -24,7 +24,7 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
 
         public async Task pROVERKA()
         {
-            _logger.LogWarning($"pROVERKA вызван. _isCheckedCreate = {_isCheckedCreate}");  
+            _logger.LogWarning($"pROVERKA !!!!!!!!!!!!!!!!вызван. _isCheckedCreate = {_isCheckedCreate}");  
             if (_isCheckedCreate == true) return;
 
             if (_isCheckedCreate == false)
@@ -69,6 +69,7 @@ namespace Messangers.SQLite.DataBaseCreatesTables.CreateDataBases
                     "TNumber TEXT," +
                     "Mail TEXT," +
                     "Avatar BLOB," +
+                    "AvatarExpansion TEXT," +
                     "Login TEXT NOT NULL," +
                     "Password TEXT NOT NULL," +
                     "DateRegistration TEXT NOT NULL)";

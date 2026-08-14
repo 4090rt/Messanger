@@ -11,6 +11,5 @@ namespace MessangersUI.DataModel
         public string UserName;
         public byte[] File;
         public string expansion;
-        public long FileSize;
     }
 }
