@@ -114,6 +114,7 @@ builder.Services.AddScoped<CheckUserInBD>();
 builder.Services.AddScoped<CheckHashPasswordFromBD>();
 builder.Services.AddScoped<SelectAllPathAttachment>();
 builder.Services.AddScoped<AvatarUpdate>();
+builder.Services.AddScoped<AvatarGive>();
 
 // 2. Настройка конфигурации
 builder.Configuration
