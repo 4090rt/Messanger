@@ -53,6 +53,7 @@ namespace MessangersUI
         public ILogger<PostRequestDeleteContact> _loggerdeletecontact;
         public ILogger<PostRequestOnlineUsers> _loggeronlineuser;
         public ILogger<PostMethodAvatar> _logeraatar;
+        public ILogger<RequestAvatarUsing> _loggerusingavatar;
         private readonly ILogger<PostLoginRequest> _loggerlog;
 
         private readonly IMemoryCache _memoryCache;
@@ -87,6 +88,8 @@ namespace MessangersUI
         public PostRequestAddFirstUserContact _PostRequestAddFirstUserContact;
         public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
         public PostMethodAvatar _postmethodavatar;
+        public RequestAvatarUsing _requestAvatarUsing;
+
         string Login = "";
         string Password = "";
         public  LoginPage()
@@ -124,7 +127,8 @@ namespace MessangersUI
             _loggerPostRequestAddFirstUserContact = loggerFactory.CreateLogger<PostRequestAddFirstUserContact>();
             _loggerPostRequestDeleteChatHistory = loggerFactory.CreateLogger<PostRequestDeleteChatHistory>();
             _logeraatar = loggerFactory.CreateLogger<PostMethodAvatar>();
-          
+            _loggerusingavatar = loggerFactory.CreateLogger<RequestAvatarUsing>();
+            
 
 
             var services = new ServiceCollection();
@@ -249,6 +253,12 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _requestAvatarUsing = new RequestAvatarUsing(_loggerusingavatar, _httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException);
+
 
         }
         public async Task RequestLogin()
@@ -273,7 +283,6 @@ namespace MessangersUI
                     {
                         throw new OperationCanceledException();
                     }
-                    System.Windows.MessageBox.Show(Login);
                     var result = await _postLoginRequest.Request(requestcontent).ConfigureAwait(false);
                     if (result.Succes == true)
                     {
@@ -298,7 +307,8 @@ namespace MessangersUI
                                     _PostRequestAddFirstUserContact,
                                     _onlineUser,
                                     _PostRequestDeleteChatHistory,
-                                    _postmethodavatar
+                                    _postmethodavatar,
+                                    _requestAvatarUsing
                                     );
                                 _MainWindow.Show();
                                 Window windowToClose = (Window)this.Parent;

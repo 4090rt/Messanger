@@ -93,6 +93,7 @@ namespace MessangersUI
         public ILogger<PasswordhASH> _passwordpash;
         public ILogger<PostMethodAvatar> _logeraatar;
         private readonly ILogger<PostLoginRequest> _loggerlog;
+        public ILogger<RequestAvatarUsing> _loggerusingavatar;
 
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IServiceCollection _serviceDescriptors;
@@ -133,6 +134,7 @@ namespace MessangersUI
         private readonly JsonExceptionDelegate _jsonExceptionDelegate;
         private readonly TaskCanccelException _taskCanccelException;
         public PostMethodAvatar _postmethodavatar;
+        public RequestAvatarUsing _requestAvatarUsing;
         public main(HubConnection? hubconnection, string authtoken, string username, string user)
         {
             InitializeComponent();
@@ -178,6 +180,7 @@ namespace MessangersUI
             _loggerPostHistoryFiles = loggerFactory.CreateLogger<PostHistoryFiles>();
             _loggrGetFile = loggerFactory.CreateLogger<GetFileRequest>();
             _logeraatar = loggerFactory.CreateLogger<PostMethodAvatar>();
+            _loggerusingavatar = loggerFactory.CreateLogger<RequestAvatarUsing>();
 
 
 
@@ -364,10 +367,20 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _requestAvatarUsing = new RequestAvatarUsing(_loggerusingavatar, _httpClientFactory,
+            _exceptionDelegate,
+            _httpExceptionDelegate,
+            _jsonExceptionDelegate,
+            _taskCanccelException);
+
 
 
             ChatUserName.Text = _user;
-            LoadHistory(_username, user);
+
+            this.Loaded += async (s, e) =>
+            {
+                await LoadHistory(_username, user);
+            };
         }
 
         public async Task LoadHistory(string username, string user)
@@ -912,7 +925,8 @@ namespace MessangersUI
                                     _PostRequestAddFirstUserContact,
                                     _onlineUser,
                                     _PostRequestDeleteChatHistory,
-                                    _postmethodavatar);
+                                    _postmethodavatar,
+                                    _requestAvatarUsing);
             MainWindow.Show();
             this.Close();
         }

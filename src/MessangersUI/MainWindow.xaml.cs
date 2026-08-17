@@ -2,6 +2,7 @@
 using Messangers.ModelData;
 using MessangersUI.DataModel;
 using MessangersUI.HttpGetRequest.Ping;
+using MessangersUI.HttpReuest.PostRequestAvatar;
 using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage;
@@ -50,11 +51,14 @@ namespace MessangersUI
         public PostRequestContacts _postRequestContacts;
         public PostRequestOnlineUsers _onlineUser;
         public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
+        public RequestAvatarUsing _avatarUsing;
+
         public main _main;
         public bool _Openchat = false;
         public string _activeChatWith;
         private readonly string _authToken;
         private readonly string _username;
+        public PostMethodAvatar _methodAvatar;
 
         public MainWindow(string authToken, string username, GetRequestPing getRequestPing, 
             HttpGetRequestProvider httpGetRequestProvider, PostProviderClient postProviderClient,
@@ -62,7 +66,7 @@ namespace MessangersUI
             SearchUserPost searchUserPost, PostRequestContacts postRequestContacts, PostRequestUserContactList postRequestUserContactList, 
             PostRequestDeleteContact deleteContact, HttpPostRequestValidationContact httpPostRequestValidationContact,
             PostRequestCount postRequestCount, PostRequestAddFirstUserContact PostRequestAddFirstUserContact, PostRequestOnlineUsers postRequestOnlineUsers,
-            PostRequestDeleteChatHistory postRequestDeleteChatHistory)
+            PostRequestDeleteChatHistory postRequestDeleteChatHistory, PostMethodAvatar methodAvatar, RequestAvatarUsing avatarUsing)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -84,10 +88,16 @@ namespace MessangersUI
             _PostRequestAddFirstUserContact = PostRequestAddFirstUserContact;
             _onlineUser = postRequestOnlineUsers;
             _PostRequestDeleteChatHistory = postRequestDeleteChatHistory;
-            gg();
-            BaseContacts();
-            MainMethod();
-            UIFace();
+            _methodAvatar = methodAvatar;
+            _avatarUsing = avatarUsing;
+
+            this.Loaded += async (s, e) =>
+            {
+                gg();
+                await BaseContacts();
+                await MainMethod();
+                await UIFace();
+            };
 
         }
         private HubConnection? _connection;
@@ -171,7 +181,7 @@ namespace MessangersUI
         {
             _connection.On<string, string, AttachmentMetadata>("ReceiveMessage", async (fromUser, message, attachmentMetadata) =>
             {
-                List<UserContact> list = await BaseContacts();
+                List<UserContact> list = await BaseContacts().ConfigureAwait(false);
 
                 var result = new HashSet<string>(list?.Select(p => p.Username) ?? new List<string>());
 
@@ -331,14 +341,14 @@ namespace MessangersUI
                                 string photo = "";
 
                                 List<UserContact> user = new List<UserContact>
-                            {
+                                {
                                 new UserContact
                                 {
                                     Name = _username,
                                     Username = username,
                                     photo = photo,
                                 }
-                            };
+                                 };
                                 bool saved = await _postRequestContacts.Request(user);
                                 if (saved)
                                 {
@@ -520,6 +530,7 @@ namespace MessangersUI
                 };
                 listdata.Add(users);
             }
+
             var resultonline = await _onlineUser.RequestPost(listdata).ConfigureAwait(false);
 
             var onlineusers = new HashSet<string>(resultonline?.Select(u => u.User) ?? new List<string>());
@@ -544,14 +555,14 @@ namespace MessangersUI
                             ? System.Windows.Media.Brushes.Green
                             : System.Windows.Media.Brushes.Red;
 
-                            Border circle = new Border
-                                {
-                                    Width = 40,
-                                    Height = 40,
-                                    CornerRadius = new CornerRadius(20),
-                                    Background = circleColor,
-                                    Margin = new Thickness(5)
-                                };
+                            //Border circle = new Border
+                            //    {
+                            //        Width = 40,
+                            //        Height = 40,
+                            //        CornerRadius = new CornerRadius(20),
+                            //        Background = circleColor,
+                            //        Margin = new Thickness(5)
+                            //    };
 
                             TextBlock initials = new TextBlock
                             {
@@ -561,7 +572,7 @@ namespace MessangersUI
                                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
                                 VerticalAlignment = VerticalAlignment.Center
                             };
-                            circle.Child = initials;
+                            //circle.Child = initials;
 
                             TextBlock name = new TextBlock
                             {
@@ -614,7 +625,7 @@ namespace MessangersUI
                                 this.Hide();
                             };
 
-                            userPanel.Children.Add(circle);
+                            //userPanel.Children.Add(circle);
                             userPanel.Children.Add(name);
                             userPanel.Children.Add(deleteBtn);
                             userPanel.Children.Add(chatbutton);
@@ -667,6 +678,20 @@ namespace MessangersUI
             catch (Exception ex)
             {
                 System.Windows.MessageBox.Show("dsdd" + ex.Message);
+            }
+        }
+
+        private void SettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                Settings settings = new Settings(_methodAvatar, _username, _avatarUsing);
+                settings.Show();
+                this.Hide();
+            }
+            catch (Exception ex)
+            {
+                System.Windows.MessageBox.Show(ex.Message);
             }
         }
     }

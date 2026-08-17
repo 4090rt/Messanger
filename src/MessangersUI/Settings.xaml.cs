@@ -2,6 +2,7 @@
 using MessangersUI.HttpReuest.PostRequestAvatar;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -25,14 +26,55 @@ namespace MessangersUI
         public AvatarMetaData _avatarmetadata;
         private readonly PostMethodAvatar _postMethodAvatar;
         private readonly string _username;
-        
-        public Settings(PostMethodAvatar postMethodAvatar, string username)
+        private RequestAvatarUsing _avatarUsing;
+
+        public Settings(PostMethodAvatar postMethodAvatar, string username, RequestAvatarUsing avatarUsing)
         {
             InitializeComponent();
 
             _postMethodAvatar = postMethodAvatar;
             _avatarmetadata = new AvatarMetaData();
             _username = username;
+            _avatarUsing = avatarUsing;
+
+            this.Loaded += async (s, e) =>
+            {
+                await GiveImageAcatar();
+            };
+        }
+
+        public async Task GiveImageAcatar()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_username))
+                    return;
+
+                AvatarStructure avatarStructure = await _avatarUsing.Request(_username).ConfigureAwait(false);
+
+                if (avatarStructure.State != null && avatarStructure.Data.Length > 0)
+                {
+                    Dispatcher.Invoke(() =>
+                    {
+                        byte[] bytes = avatarStructure.Data.ToArray();
+                        BitmapImage bitmapImage = new BitmapImage();
+
+                        using (MemoryStream stream = new MemoryStream(bytes))
+                        {
+                            bitmapImage.BeginInit();
+                            bitmapImage.StreamSource = stream;
+                            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                            bitmapImage.EndInit();
+                        }
+                        ImageAvatar.Source = bitmapImage;
+                    });
+                }
+                return;
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Возникло исключение при попытку отобразить аватар {ex.Message}");
+            }
         }
 
         private async void Button_Click(object sender, RoutedEventArgs e)
