@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -109,9 +110,11 @@ namespace MessangersUI
                             Login = Login,
                             cachePassword = CachedPassword,
                             date = DateTime.Now,
+                            Data = GeneratePlaceholderMemory(Login),
                             Tnumber = Number ?? "None",
-                            Mail = Mail ?? "None"
+                            Mail = Mail ?? "None",
                         };
+
 
 
                         if (_source?.IsCancellationRequested == true)
@@ -180,6 +183,50 @@ namespace MessangersUI
         private void Button_Click_2(object sender, RoutedEventArgs e)
         {
             NavigationService?.Navigate(new LoginPage());
+        }
+
+        private ReadOnlyMemory<byte> GeneratePlaceholderMemory(string username)
+        {
+            char letter = string.IsNullOrEmpty(username) ? '?' : username.ToUpper()[0];
+
+            var textBlock = new TextBlock
+            {
+                Text = letter.ToString(),
+                FontSize = 32,
+                FontWeight = FontWeights.Bold,
+                Foreground = System.Windows.Media.Brushes.White,
+                Background = System.Windows.Media.Brushes.Gray,
+                Width = 80,
+                Height = 80,
+                TextAlignment = TextAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                FontFamily = new System.Windows.Media.FontFamily("Arial") // ← Добавь шрифт
+            };
+
+            // ✅ Измеряем и располагаем перед рендерингом
+            textBlock.Measure(new System.Windows.Size(80, 80));
+            textBlock.Arrange(new Rect(0, 0, 80, 80));
+
+            var renderBitmap = new RenderTargetBitmap(80, 80, 96, 96, PixelFormats.Pbgra32);
+            renderBitmap.Render(textBlock);
+
+            // ✅ Проверяем, что есть пиксели
+            if (renderBitmap.Width == 0 || renderBitmap.Height == 0)
+            {
+                throw new Exception("RenderTargetBitmap пуст!");
+            }
+
+            using (var stream = new MemoryStream())
+            {
+                var encoder = new PngBitmapEncoder();
+                encoder.Frames.Add(BitmapFrame.Create(renderBitmap));
+                encoder.Save(stream);
+
+                var bytes = stream.ToArray();
+                System.Windows.MessageBox.Show($"Сгенерировано PNG: {bytes.Length} байт"); // ← Должно быть 300-500
+
+                return bytes.AsMemory();
+            }
         }
     }
 }

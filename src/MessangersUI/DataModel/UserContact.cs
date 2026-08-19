@@ -14,8 +14,5 @@ namespace MessangersUI.DataModel
 
         [JsonPropertyName("name")]
         public string Name { get; set; }
-
-        [JsonPropertyName("photo")]
-        public string photo { get; set; }
     }
 }

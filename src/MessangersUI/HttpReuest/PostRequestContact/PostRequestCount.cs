@@ -82,7 +82,6 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                 }
                 else
                 {
-                    System.Windows.MessageBox.Show("2");
                     var contentresponce = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
                     var jsonDOC = JsonDocument.Parse(contentresponce);
                     var root = jsonDOC.RootElement;

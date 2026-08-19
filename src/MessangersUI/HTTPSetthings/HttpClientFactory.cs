@@ -24,8 +24,8 @@ namespace MessangersUI.HTTPSetthings
                 clienthttp.DefaultRequestVersion = HttpVersion.Version20;
                 clienthttp.DefaultVersionPolicy = HttpVersionPolicy.RequestVersionOrHigher;
             }).AddPolicyHandler(Policy.TimeoutAsync<HttpResponseMessage>(
-                TimeSpan.FromMinutes(0.30),
-                Polly.Timeout.TimeoutStrategy.Pessimistic,
+                TimeSpan.FromMinutes(0.5),
+                Polly.Timeout.TimeoutStrategy.Optimistic,
                 onTimeoutAsync: (context, timespan, task) =>
                 {
                     Console.WriteLine($"⏰ Request timed out after {timespan}");

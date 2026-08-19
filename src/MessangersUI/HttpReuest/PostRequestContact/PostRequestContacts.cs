@@ -57,7 +57,6 @@ namespace MessangersUI.HttpReuest.PostRequestContact
                     {
                         Username = contactData.Name,
                         Name = contactData.Username,
-                        photo = contactData.photo
                     }
                 };
 

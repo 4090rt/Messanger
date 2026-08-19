@@ -50,6 +50,7 @@ namespace MessangersUI.HttpReuest.PostRequestLoginAndRegister
                     login = registrData.Login,
                     password = registrData.cachePassword,
                     datetime = DateTime.Now,
+                    Data = registrData.Data,
                     Tnumber = registrData.Tnumber,
                     Mail = registrData.Mail,        
                 };

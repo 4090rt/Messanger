@@ -27,8 +27,9 @@ namespace MessangersUI
         private readonly PostMethodAvatar _postMethodAvatar;
         private readonly string _username;
         private RequestAvatarUsing _avatarUsing;
+        private MainWindow _mainWindow;
 
-        public Settings(PostMethodAvatar postMethodAvatar, string username, RequestAvatarUsing avatarUsing)
+        public Settings(PostMethodAvatar postMethodAvatar, string username, RequestAvatarUsing avatarUsing, MainWindow mainWindow)
         {
             InitializeComponent();
 
@@ -36,11 +37,27 @@ namespace MessangersUI
             _avatarmetadata = new AvatarMetaData();
             _username = username;
             _avatarUsing = avatarUsing;
+            _mainWindow = mainWindow;
 
+
+            UsernameText.Content = _username;
             this.Loaded += async (s, e) =>
             {
                 await GiveImageAcatar();
             };
+        }
+
+        public async Task GiveEmailAndNumber()
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(_username))
+                    return;
+            }
+            catch(Exception ex) 
+            {
+                
+            }
         }
 
         public async Task GiveImageAcatar()
@@ -51,7 +68,6 @@ namespace MessangersUI
                     return;
 
                 AvatarStructure avatarStructure = await _avatarUsing.Request(_username).ConfigureAwait(false);
-
                 if (avatarStructure.State != null && avatarStructure.Data.Length > 0)
                 {
                     Dispatcher.Invoke(() =>
@@ -129,6 +145,12 @@ namespace MessangersUI
                     System.Windows.MessageBox.Show("не удалось получить иозображение");
                 }
             }
+        }
+
+        private void CloseSettingsButton_Click(object sender, RoutedEventArgs e)
+        {
+            _mainWindow.Show();
+            this.Close();
         }
     }
 }

@@ -23,7 +23,7 @@ namespace MessangersUI.HttpReuest.PostRequestAvatar
         private readonly TaskCanccelException _taskCanccelException;
         private AvatarStructure _avatarStructure;
 
-        private readonly string Url = "https://localhost:7167/api//";
+        private readonly string Url = "https://localhost:7167/api/ControllerAvatarGive/controllergiveAv";
 
         public RequestAvatarUsing (ILogger<RequestAvatarUsing> logger, IHttpClientFactory httpClientFactory, 
             ExceptionDelegate exceptionDelegate, HttpExceptionDelegate httpExceptionDelegate, JsonExceptionDelegate jsonExceptionDelegate,
@@ -54,7 +54,6 @@ namespace MessangersUI.HttpReuest.PostRequestAvatar
                 var content = new StringContent(serialise,Encoding.UTF8, "application/json");
 
                 using var cts = new CancellationTokenSource();
-
                 HttpResponseMessage responseMessage = await client.PostAsync(Url, content, cts.Token).ConfigureAwait(false);
                 if (responseMessage.IsSuccessStatusCode)
                 {
@@ -68,8 +67,8 @@ namespace MessangersUI.HttpReuest.PostRequestAvatar
                     var json = JsonDocument.Parse(readOnlyMemoryBytes);
                     var root = json.RootElement;
 
-                    if (root.TryGetProperty("Data", out var databytes) &&
-                        root.TryGetProperty("State", out var Statedata))
+                    if (root.TryGetProperty("data", out var databytes) &&
+                        root.TryGetProperty("state", out var Statedata))
                     {
                         var propByte1 = databytes.GetString() ?? string.Empty;
                         var propState2 = Statedata.GetString() ?? string.Empty;
@@ -88,6 +87,8 @@ namespace MessangersUI.HttpReuest.PostRequestAvatar
                     {
                         var resultot = System.Text.Encoding.UTF8.GetString(bytes);
                         Debug.WriteLine($"Неожиданный ответ от серве в RequestAvatarUsing\n" +
+                            $"{resultot}");
+                        MessageBox.Show($"Неожиданный ответ от серве в RequestAvatarUsing\n" +
                             $"{resultot}");
                         return new AvatarStructure();
                     }
@@ -104,8 +105,8 @@ namespace MessangersUI.HttpReuest.PostRequestAvatar
                     var json = JsonDocument.Parse(readOnlyMemoryBytes);
                     var root = json.RootElement;
 
-                    if (root.TryGetProperty("Data", out var databytes) &&
-                            root.TryGetProperty("State", out var Statedata))
+                    if (root.TryGetProperty("data", out var databytes) &&
+                            root.TryGetProperty("state", out var Statedata))
                     {
                         var propByte1 = databytes.GetString() ?? string.Empty;
                         var propState2 = Statedata.GetString() ?? string.Empty;
@@ -125,27 +126,33 @@ namespace MessangersUI.HttpReuest.PostRequestAvatar
                         var resultot = System.Text.Encoding.UTF8.GetString(bytes);
                         Debug.WriteLine($"Неожиданный ответ от серве в RequestAvatarUsing\n" +
                             $"{resultot}");
+                        MessageBox.Show($"Неожиданный ответ от серве в RequestAvatarUsing\n" +
+           $"{resultot}");
                         return new AvatarStructure();
                     }
                 }
             }
             catch (TaskCanceledException ex)
             {
+                MessageBox.Show("1");
                 await _taskCanccelException.RunDelegate(_taskCanccelException.Delegate, ex);
                 return new AvatarStructure();
             }
             catch (HttpRequestException ex)
             {
+                MessageBox.Show("2");
                 await _httpExceptionDelegate.RunDelegate(_httpExceptionDelegate.Delegate, ex);
                 return new AvatarStructure();
             }
             catch (JsonException ex)
             {
+                MessageBox.Show("3");
                 await _jsonExceptionDelegate.RunDelegate(_jsonExceptionDelegate.Delegate, ex);
                 return new AvatarStructure();
             }
             catch (Exception ex)
             {
+                MessageBox.Show("4");
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
                 return new AvatarStructure();
             }

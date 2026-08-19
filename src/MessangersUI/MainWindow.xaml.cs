@@ -13,6 +13,8 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.VisualBasic.ApplicationServices;
 using Polly;
 using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
 using System.Net.Http;
 using System.Reflection;
 using System.Text;
@@ -195,14 +197,13 @@ namespace MessangersUI
                                 {
                                     Name = _username,
                                     Username = fromUser,
-                                    photo = "",
                                 }
                             };
                         bool saved = await _postRequestContacts.Request(user);
                         if (saved)
                         {
                             System.Windows.MessageBox.Show("Добавлен в контакты");
-                            NewUser(fromUser);
+                            await UIFace();
                         }
                     }
                     else
@@ -338,15 +339,12 @@ namespace MessangersUI
                             {
                                 DateTime date = DateTime.Now;
 
-                                string photo = "";
-
                                 List<UserContact> user = new List<UserContact>
                                 {
                                 new UserContact
                                 {
                                     Name = _username,
                                     Username = username,
-                                    photo = photo,
                                 }
                                  };
                                 bool saved = await _postRequestContacts.Request(user);
@@ -354,7 +352,7 @@ namespace MessangersUI
                                 {
                                     string result = await _PostRequestCount.RequestPost(_username);
                                     LabelCount.Content = $"Число ваших контактов: {result}";
-                                    NewUser(username);
+                                    await UIFace();
                                 }
                                 else
                                 {
@@ -392,120 +390,8 @@ namespace MessangersUI
             _cancellationSource?.Cancel();
 
         }
-
-        public async void NewUser(string user)
-        {
-            bool result = await _PostRequestAddFirstUserContact.PostRequest(user).ConfigureAwait(false);
-
-            Dispatcher.Invoke(() =>
-            {
-                StackPanel userPanel = new StackPanel
-                {
-                    Orientation = System.Windows.Controls.Orientation.Horizontal,
-                    Margin = new Thickness(10),
-                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 40)),
-                    Tag = user
-                };
-                System.Windows.Media.Brush circleColor = result
-                ? System.Windows.Media.Brushes.Green
-                : System.Windows.Media.Brushes.Red;
-
-                Border circle = new Border
-                {
-                    Width = 40,
-                    Height = 40,
-                    CornerRadius = new CornerRadius(20),
-                    Background = circleColor,
-                    Margin = new Thickness(5)
-                };
-
-                TextBlock initials = new TextBlock
-                {
-                    Text = user.ToString().ToUpper(),
-                    Foreground = System.Windows.Media.Brushes.White,
-                    FontSize = 20,
-                    HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
-                };
-                circle.Child = initials;
-
-                TextBlock name = new TextBlock
-                {
-                    Text = user,
-                    Foreground = System.Windows.Media.Brushes.White,
-                    FontSize = 16,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(10, 0, 0, 0)
-                };
-
-                System.Windows.Controls.Button deleteBtn = new System.Windows.Controls.Button
-                {
-                    Content = "X",
-                    Background = System.Windows.Media.Brushes.Red,
-                    Foreground = System.Windows.Media.Brushes.White,
-                    Width = 30,
-                    Height = 30,
-                    Margin = new Thickness(10, 0, 0, 0),
-                    Tag = user
-                };
-                System.Windows.Controls.Button chatbutton = new System.Windows.Controls.Button
-                {
-                    Content = "Chat",
-
-                    Background = System.Windows.Media.Brushes.Green,
-                    Foreground = System.Windows.Media.Brushes.White,
-                    Width = 30,
-                    Height = 60,
-                    Margin = new Thickness(10, 0, 0, 0)
-                };
-                deleteBtn.Click += async (s, e) =>
-                {
-                    if (System.Windows.MessageBox.Show($"Удалить контакт {user}?",
-                    "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-                    {
-                        if (System.Windows.MessageBox.Show($"Удалить историю сообщений с {user}?",
-                        "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-                        {
-                            UsersStackPanel.Children.Remove(userPanel);
-                            await _deleteContact.Request(_username, user);
-                            await _PostRequestDeleteChatHistory.PostDeleteHistory(_username, user);
-                            string result = await _PostRequestCount.RequestPost(_username);
-                            LabelCount.Content = $"Число ваших контактов: {result}";
-                        }
-                        else
-                        {
-                            UsersStackPanel.Children.Remove(userPanel);
-                            await _deleteContact.Request(_username, user);
-                            string result = await _PostRequestCount.RequestPost(_username);
-                            LabelCount.Content = $"Число ваших контактов: {result}";
-                        }
-                    }
-                };
-
-
-                chatbutton.Click += async (s, e) =>
-                {
-                    _Openchat = true;
-                    var mainWindow = new main(_connection, _authToken, _username, user);
-                      _main = mainWindow;
-                    _activeChatWith = user;
-                    mainWindow.Show();
-                    this.Hide();
-                };
-
-                userPanel.Children.Add(circle);
-                userPanel.Children.Add(name);
-                userPanel.Children.Add(deleteBtn);
-                userPanel.Children.Add(chatbutton);
-
-                UsersStackPanel.Children.Add(userPanel);
-
-                userPanel.BringIntoView();
-            });
-        }
-
         public async Task UIFace()
-        {    // Проверка что элемент управления существует
+        {    
             await Dispatcher.InvokeAsync(() =>
             {
                 if (UsersStackPanel == null)
@@ -516,6 +402,7 @@ namespace MessangersUI
             });
 
             string result = await _PostRequestCount.RequestPost(_username);
+
             LabelCount.Content = $"Число ваших контактов: {result}";
 
             List<UserContact> list = await BaseContacts();
@@ -537,36 +424,62 @@ namespace MessangersUI
 
             await Dispatcher.InvokeAsync(() => UsersStackPanel.Children.Clear());
 
-            foreach (UserContact contact in list)
+            var avatars = list.Select(async contact =>
             {
-                await Dispatcher.InvokeAsync(() =>
-                {
-                    if (list != null)
+                var resultavatar = await _avatarUsing.Request(contact.Username).ConfigureAwait(false);
+                return new { Username = contact.Username, name = contact.Name, AvatarData = resultavatar.Data };
+            });
+
+            var avatrsresult = await Task.WhenAll(avatars);
+
+            foreach (var item in avatrsresult)
+            {
+                    await Dispatcher.InvokeAsync(async () =>
                     {
+                        BitmapImage bitmap = new BitmapImage();
+
+                        using (MemoryStream memoryStream = new MemoryStream(item.AvatarData.ToArray()))
+                        {
+                            bitmap.BeginInit();
+                            bitmap.StreamSource = memoryStream;
+                            bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                            bitmap.EndInit();
+                            bitmap.Freeze();
+                        }
+                        if (list != null)
+                        {
                             StackPanel userPanel = new StackPanel
                             {
                                 Orientation = System.Windows.Controls.Orientation.Horizontal,
                                 Margin = new Thickness(10),
                                 Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(40, 40, 40)),
-                                Tag = contact.Username
+                                Tag = item.Username
                             };
-                            bool isOnline = onlineusers.Contains(contact.Username);
+                            bool isOnline = onlineusers.Contains(item.Username);
                             System.Windows.Media.Brush circleColor = isOnline
-                            ? System.Windows.Media.Brushes.Green
-                            : System.Windows.Media.Brushes.Red;
+                        ? System.Windows.Media.Brushes.Green
+                        : System.Windows.Media.Brushes.Red;
 
-                            //Border circle = new Border
-                            //    {
-                            //        Width = 40,
-                            //        Height = 40,
-                            //        CornerRadius = new CornerRadius(20),
-                            //        Background = circleColor,
-                            //        Margin = new Thickness(5)
-                            //    };
+                            Border circle = new Border
+                            {
+                                Width = 20,
+                                Height = 20,
+                                CornerRadius = new CornerRadius(20),
+                                Background = circleColor,
+                                Margin = new Thickness(5)
+                            };
+
+                            System.Windows.Controls.Image imageavatar = new System.Windows.Controls.Image
+                            {
+                                Width = 50,
+                                Height = 50,
+                                Margin = new Thickness(5),
+                                Source = bitmap
+                            };
 
                             TextBlock initials = new TextBlock
                             {
-                                Text = contact.Name.ToString().ToUpper(),
+                               Text = item.name.ToString().ToUpper(),
                                 Foreground = System.Windows.Media.Brushes.White,
                                 FontSize = 20,
                                 HorizontalAlignment = System.Windows.HorizontalAlignment.Center,
@@ -576,7 +489,7 @@ namespace MessangersUI
 
                             TextBlock name = new TextBlock
                             {
-                                Text = contact.Username,
+                                Text = item.Username,
                                 Foreground = System.Windows.Media.Brushes.White,
                                 FontSize = 16,
                                 VerticalAlignment = VerticalAlignment.Center,
@@ -591,7 +504,7 @@ namespace MessangersUI
                                 Width = 30,
                                 Height = 30,
                                 Margin = new Thickness(10, 0, 0, 0),
-                                Tag = contact.Username
+                                Tag = item.Username
                             };
 
                             System.Windows.Controls.Button chatbutton = new System.Windows.Controls.Button
@@ -606,38 +519,38 @@ namespace MessangersUI
                             };
 
                             deleteBtn.Click += async (s, e) =>
-                            {
-                                if (System.Windows.MessageBox.Show($"Удалить контакт {contact.Username}?",
-                        "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
-                                    UsersStackPanel.Children.Remove(userPanel);
-                                await _deleteContact.Request(_username, contact.Username);
-                                string result = await _PostRequestCount.RequestPost(_username);
-                                LabelCount.Content = $"Число ваших контактов: {result}";
-                            };
+                        {
+                                    if (System.Windows.MessageBox.Show($"Удалить контакт {item.Username}?",
+                            "Подтверждение", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                                        UsersStackPanel.Children.Remove(userPanel);
+                                    await _deleteContact.Request(_username, item.Username);
+                                    string result = await _PostRequestCount.RequestPost(_username);
+                                    LabelCount.Content = $"Число ваших контактов: {result}";
+                                };
 
                             chatbutton.Click += async (s, e) =>
-                            {
-                                _Openchat = true;
-                                var mainWindow = new main(_connection, _authToken, _username, contact.Username);
-                                _main = mainWindow;
-                                _activeChatWith = contact.Username;
-                                mainWindow.Show();
-                                this.Hide();
-                            };
+                        {
+                                    _Openchat = true;
+                                    var mainWindow = new main(_connection, _authToken, _username, item.Username);
+                                    _main = mainWindow;
+                                    _activeChatWith = item.Username;
+                                    mainWindow.Show();
+                                    this.Hide();
+                                };
 
-                            //userPanel.Children.Add(circle);
+                            userPanel.Children.Add(circle);
+                            userPanel.Children.Add(imageavatar);
                             userPanel.Children.Add(name);
                             userPanel.Children.Add(deleteBtn);
                             userPanel.Children.Add(chatbutton);
-
                             UsersStackPanel.Children.Add(userPanel);
                         }
-                    else
-                    {
-                        UsersStackPanel.Children.Clear();
-                        System.Windows.MessageBox.Show("Контактов нет");
-                    }
-                });
+                        else
+                        {
+                            UsersStackPanel.Children.Clear();
+                            System.Windows.MessageBox.Show("Контактов нет");
+                        }
+                    });
             }
         }
         private async void Button_ClickpING(object sender, RoutedEventArgs e)
@@ -685,7 +598,26 @@ namespace MessangersUI
         {
             try
             {
-                Settings settings = new Settings(_methodAvatar, _username, _avatarUsing);
+                MainWindow mainWindow = new MainWindow(_authToken,
+                                    _username,
+                                    _getRequestPing,
+                                    _httpGetRequestProvider,
+                                    _PostProviderClient,
+                                    _RequestProviderClient,
+                                    _PingRequestServerMessang,
+                                    _searchuser,
+                                    _postRequestContacts,
+                                    _PostRequestUserContactList,
+                                    _deleteContact,
+                                    _httpPostRequestValidationContact,
+                                    _PostRequestCount,
+                                    _PostRequestAddFirstUserContact,
+                                    _onlineUser,
+                                    _PostRequestDeleteChatHistory,
+                                    _methodAvatar,
+                                    _avatarUsing);
+
+                Settings settings = new Settings(_methodAvatar, _username, _avatarUsing, mainWindow);
                 settings.Show();
                 this.Hide();
             }
@@ -695,4 +627,5 @@ namespace MessangersUI
             }
         }
     }
+
 }
