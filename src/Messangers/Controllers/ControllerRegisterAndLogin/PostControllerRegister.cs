@@ -47,7 +47,6 @@ namespace Messangers.Controllers.ControllerRegisterAndLogin
                 return BadRequest(new { error = "Пользователь уже зарегестрирован!" });
             }
             
-
             await _saveRequestInBdRegister.SaveRegisterDataInBd(model);
 
 

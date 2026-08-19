@@ -17,7 +17,7 @@ namespace Messangers.Controllers.ControllerAvatar
             _avatarGive = avatarGive;
         }
 
-        [HttpPost]
+        [HttpPost("controllergiveAv")]
         public async Task<IActionResult> ControllerGive([FromBody] string username)
         {
             try
