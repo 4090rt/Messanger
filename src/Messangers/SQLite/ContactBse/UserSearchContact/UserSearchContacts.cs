@@ -46,7 +46,6 @@ namespace Messangers.SQLite.ContactBse.UserSearchContact
 
         public async Task<List<UserContact>> Rquest(string Username)
         {
-            _logger.LogWarning("Начинаю запрос в бд");
             _logger.LogWarning(Username);
             SQLiteConnection connection = null;
             SQLiteTransaction transaction = null;
@@ -76,7 +75,6 @@ namespace Messangers.SQLite.ContactBse.UserSearchContact
                         {
                             Username = contactName,
                             Name = yourName,  
-                            photo = photo
                         };
                         userContactlist.Add(userContact);
                         }

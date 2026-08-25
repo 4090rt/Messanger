@@ -15,6 +15,7 @@ using Messangers.SQLite.DataBaseCreatesTables.CreateDataBases;
 using Messangers.SQLite.DataBaseCreatesTables.InithilizateDataBaseCreate;
 using Messangers.SQLite.HistroyMessage;
 using Messangers.SQLite.HistroyMessage.HistoryAttachment;
+using Messangers.SQLite.PhoneNumberANDMail;
 using Messangers.SQLite.PoolSQLiteConnection;
 using Messangers.SQLite.UserProviderInsert;
 using Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegisterAndLogin;
@@ -115,6 +116,7 @@ builder.Services.AddScoped<CheckHashPasswordFromBD>();
 builder.Services.AddScoped<SelectAllPathAttachment>();
 builder.Services.AddScoped<AvatarUpdate>();
 builder.Services.AddScoped<AvatarGive>();
+builder.Services.AddScoped<GivePhoneAndMail>();
 
 // 2. Настройка конфигурации
 builder.Configuration

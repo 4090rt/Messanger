@@ -49,8 +49,8 @@ namespace Messangers.SQLite.AvatarAdd
 
         public async Task<ReadOnlyMemory<byte>> CachaRequest(string username)
         {
-            string cache_key = "Avatar_byte_cache_key";
-            string stale_cache_key = "StaleAvatar_byte_cache_key";
+            string cache_key = $"Avatar_byte_cache_key{username}";
+            string stale_cache_key = $"Stale{cache_key}";
             ReadOnlyMemory<byte> oldcache = null;
 
             if (_memoryCache.TryGetValue(cache_key, out ReadOnlyMemory<byte> cached))
@@ -149,21 +149,20 @@ namespace Messangers.SQLite.AvatarAdd
             SQLiteConnection connection = null;
             try
             {
-                connection = _poolSQLite.CreateConnection();
+                connection = _poolSQLite.ConnectionOpen();
                 string command = "SELECT Avatar FROM RegisterBase WHERE Login = @L";
 
                 await using (SQLiteCommand commandsql = new SQLiteCommand(command, connection))
                 {
                     commandsql.Parameters.AddWithValue("@L", username);
 
-                    object bytes = commandsql.ExecuteScalarAsync().ConfigureAwait(false);
+                    object bytes = await commandsql.ExecuteScalarAsync().ConfigureAwait(false);
 
                     if (bytes == null)
                         return new ReadOnlyMemory<byte>();
 
                     byte[] allbytes = bytes as byte[];
                     ReadOnlyMemory<byte> byteread = allbytes.AsMemory();
-
                     return byteread;
                 }
             }
@@ -197,9 +196,9 @@ namespace Messangers.SQLite.AvatarAdd
             SQLiteConnection connection = null;
             try
             {
-                connection = _poolSQLite.CreateConnection();
+                connection = _poolSQLite.ConnectionOpen();
 
-                string command = "CREATE INDEX IF NOT EXISTS IX_RegisterBase_gIVEaVATAR ON RegisterBase";
+                string command = "CREATE INDEX IF NOT EXISTS IX_RegisterBase_gIVEaVATAR ON RegisterBase(Login)";
 
                 await using (SQLiteCommand sqlcommand = new SQLiteCommand(command, connection))
                 {
@@ -236,7 +235,7 @@ namespace Messangers.SQLite.AvatarAdd
             SQLiteConnection connection = null;
             try
             {
-                connection = _poolSQLite.CreateConnection();
+                connection = _poolSQLite.ConnectionOpen();
 
                 string command = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'IX_RegisterBase_gIVEaVATAR' AND tbl_name = 'RegisterBse'";
 

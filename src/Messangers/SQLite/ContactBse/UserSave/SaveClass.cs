@@ -35,20 +35,21 @@ namespace Messangers.SQLite.ContactBse.UserSave
                     connection = _poolSQLiteConnection.ConnectionOpen();
                     transaction = connection.BeginTransaction();
 
-                    string command = "INSERT INTO [ContactUserBD] (UserName, LoginContact, Photo) VALUES (@U, @L, @P)";
+                    string command = "INSERT INTO [ContactUserBD] (UserName, LoginContact) VALUES (@U, @L)";
 
                     await using (var sqlcommand = new SQLiteCommand(command, connection, transaction))
                     {
                         sqlcommand.Parameters.AddWithValue("@U", model.Username);
                         sqlcommand.Parameters.AddWithValue("@L", model.Name);
-                        sqlcommand.Parameters.AddWithValue("@P", model.photo);
 
                         int rows = await sqlcommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                         if (rows > 0)
                         {
+                            _logger.LogWarning("Контакт добавлен!");
                         }
                         else
                         {
+                            _logger.LogWarning("Контакт не добавлен!");
                         }
                     }
                     await transaction.CommitAsync().ConfigureAwait(false);

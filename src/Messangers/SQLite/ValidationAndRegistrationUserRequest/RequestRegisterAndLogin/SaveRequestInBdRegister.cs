@@ -35,7 +35,7 @@ namespace Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegister
 
                 await using (sQLiteTransaction = connection.BeginTransaction())
                 {
-                    string comand = $"INSERT INTO [RegisterBase] (TNumber, Mail, Login,Password, DateRegistration) VALUES (@T, @M, @L, @P, @D)";
+                    string comand = $"INSERT INTO [RegisterBase] (TNumber, Mail, Login,Password, Avatar, DateRegistration) VALUES (@T, @M, @L, @P, @A, @D)";
 
                     await using (var sqlcommand = new SQLiteCommand(comand, connection, sQLiteTransaction))
                     {
@@ -44,6 +44,7 @@ namespace Messangers.SQLite.ValidationAndRegistrationUserRequest.RequestRegister
                         sqlcommand.Parameters.AddWithValue("@L", modelDataRegister.Login);
                         sqlcommand.Parameters.AddWithValue("@P", modelDataRegister.Password);
                         sqlcommand.Parameters.AddWithValue("@D", modelDataRegister.datetime);
+                        sqlcommand.Parameters.AddWithValue("@A", modelDataRegister.Data.ToArray());
 
                         int rows = await sqlcommand.ExecuteNonQueryAsync().ConfigureAwait(false);
                         if (rows > 0)
