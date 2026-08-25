@@ -12,6 +12,7 @@ using MessangersUI.HttpReuest.PostRequestEthernetStat;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage.PostFiles;
 using MessangersUI.HttpReuest.PostRequestLoginAndRegister;
+using MessangersUI.HttpReuest.PostRequestNumberEmail;
 using MessangersUI.Notifications;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.Extensions.Caching.Memory;
@@ -92,6 +93,7 @@ namespace MessangersUI
         public ILogger<GetFileRequest> _loggrGetFile;
         public ILogger<PasswordhASH> _passwordpash;
         public ILogger<PostMethodAvatar> _logeraatar;
+        public ILogger<GiveMailNumber> _loggergivemailnumber;
         private readonly ILogger<PostLoginRequest> _loggerlog;
         public ILogger<RequestAvatarUsing> _loggerusingavatar;
 
@@ -135,6 +137,7 @@ namespace MessangersUI
         private readonly TaskCanccelException _taskCanccelException;
         public PostMethodAvatar _postmethodavatar;
         public RequestAvatarUsing _requestAvatarUsing;
+        public GiveMailNumber _GiveMailNumber;
         public main(HubConnection? hubconnection, string authtoken, string username, string user)
         {
             InitializeComponent();
@@ -181,8 +184,7 @@ namespace MessangersUI
             _loggrGetFile = loggerFactory.CreateLogger<GetFileRequest>();
             _logeraatar = loggerFactory.CreateLogger<PostMethodAvatar>();
             _loggerusingavatar = loggerFactory.CreateLogger<RequestAvatarUsing>();
-
-
+            _loggergivemailnumber = loggerFactory.CreateLogger<GiveMailNumber>();
 
             var services = new ServiceCollection();
             services.AddHttpClient();
@@ -372,10 +374,14 @@ namespace MessangersUI
             _httpExceptionDelegate,
             _jsonExceptionDelegate,
             _taskCanccelException);
-
-
-
             ChatUserName.Text = _user;
+
+            _GiveMailNumber = new GiveMailNumber(_loggergivemailnumber, _httpClientFactory,
+                 _exceptionDelegate,
+                 _httpExceptionDelegate,
+                 _jsonExceptionDelegate,
+                 _taskCanccelException,
+                 _memoryCache);
 
             this.Loaded += async (s, e) =>
             {
@@ -926,7 +932,9 @@ namespace MessangersUI
                                     _onlineUser,
                                     _PostRequestDeleteChatHistory,
                                     _postmethodavatar,
-                                    _requestAvatarUsing);
+                                    _requestAvatarUsing,
+                                    _GiveMailNumber
+                                    );
             MainWindow.Show();
             this.Close();
         }

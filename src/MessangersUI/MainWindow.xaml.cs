@@ -7,6 +7,7 @@ using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage;
 using MessangersUI.HttpReuest.PostRequestLoginAndRegister;
+using MessangersUI.HttpReuest.PostRequestNumberEmail;
 using MessangersUI.Notifications;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
@@ -54,6 +55,7 @@ namespace MessangersUI
         public PostRequestOnlineUsers _onlineUser;
         public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
         public RequestAvatarUsing _avatarUsing;
+        public GiveMailNumber _GiveMailNumber;
 
         public main _main;
         public bool _Openchat = false;
@@ -68,7 +70,7 @@ namespace MessangersUI
             SearchUserPost searchUserPost, PostRequestContacts postRequestContacts, PostRequestUserContactList postRequestUserContactList, 
             PostRequestDeleteContact deleteContact, HttpPostRequestValidationContact httpPostRequestValidationContact,
             PostRequestCount postRequestCount, PostRequestAddFirstUserContact PostRequestAddFirstUserContact, PostRequestOnlineUsers postRequestOnlineUsers,
-            PostRequestDeleteChatHistory postRequestDeleteChatHistory, PostMethodAvatar methodAvatar, RequestAvatarUsing avatarUsing)
+            PostRequestDeleteChatHistory postRequestDeleteChatHistory, PostMethodAvatar methodAvatar, RequestAvatarUsing avatarUsing, GiveMailNumber GiveMailNumber)
         {
             InitializeComponent();
             _authToken = authToken;
@@ -92,6 +94,7 @@ namespace MessangersUI
             _PostRequestDeleteChatHistory = postRequestDeleteChatHistory;
             _methodAvatar = methodAvatar;
             _avatarUsing = avatarUsing;
+            _GiveMailNumber = GiveMailNumber;
 
             this.Loaded += async (s, e) =>
             {
@@ -615,9 +618,9 @@ namespace MessangersUI
                                     _onlineUser,
                                     _PostRequestDeleteChatHistory,
                                     _methodAvatar,
-                                    _avatarUsing);
+                                    _avatarUsing, _GiveMailNumber);
 
-                Settings settings = new Settings(_methodAvatar, _username, _avatarUsing, mainWindow);
+                Settings settings = new Settings(_methodAvatar, _username, _avatarUsing, mainWindow, _GiveMailNumber);
                 settings.Show();
                 this.Hide();
             }

@@ -8,6 +8,7 @@ using MessangersUI.HttpReuest.PostRequestContact;
 using MessangersUI.HttpReuest.PostRequestEthernetStat;
 using MessangersUI.HttpReuest.PostRequestHistoryMessage;
 using MessangersUI.HttpReuest.PostRequestLoginAndRegister;
+using MessangersUI.HttpReuest.PostRequestNumberEmail;
 using MessangersUI.Notifications;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,6 +55,7 @@ namespace MessangersUI
         public ILogger<PostRequestOnlineUsers> _loggeronlineuser;
         public ILogger<PostMethodAvatar> _logeraatar;
         public ILogger<RequestAvatarUsing> _loggerusingavatar;
+        public ILogger<GiveMailNumber> _loggergivemailnumber;
         private readonly ILogger<PostLoginRequest> _loggerlog;
 
         private readonly IMemoryCache _memoryCache;
@@ -89,6 +91,7 @@ namespace MessangersUI
         public PostRequestDeleteChatHistory _PostRequestDeleteChatHistory;
         public PostMethodAvatar _postmethodavatar;
         public RequestAvatarUsing _requestAvatarUsing;
+        public GiveMailNumber _GiveMailNumber;
 
         string Login = "";
         string Password = "";
@@ -128,6 +131,7 @@ namespace MessangersUI
             _loggerPostRequestDeleteChatHistory = loggerFactory.CreateLogger<PostRequestDeleteChatHistory>();
             _logeraatar = loggerFactory.CreateLogger<PostMethodAvatar>();
             _loggerusingavatar = loggerFactory.CreateLogger<RequestAvatarUsing>();
+            _loggergivemailnumber = loggerFactory.CreateLogger<GiveMailNumber>();
             
 
 
@@ -259,6 +263,13 @@ namespace MessangersUI
                 _jsonExceptionDelegate,
                 _taskCanccelException);
 
+            _GiveMailNumber = new GiveMailNumber(_loggergivemailnumber,_httpClientFactory,
+                _exceptionDelegate,
+                _httpExceptionDelegate,
+                _jsonExceptionDelegate,
+                _taskCanccelException,
+                _memoryCache);
+
 
         }
         public async Task RequestLogin()
@@ -308,7 +319,8 @@ namespace MessangersUI
                                     _onlineUser,
                                     _PostRequestDeleteChatHistory,
                                     _postmethodavatar,
-                                    _requestAvatarUsing
+                                    _requestAvatarUsing,
+                                    _GiveMailNumber
                                     );
                                 _MainWindow.Show();
                                 Window windowToClose = (Window)this.Parent;
