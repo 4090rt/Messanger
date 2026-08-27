@@ -109,7 +109,7 @@ namespace Messangers.SQLite.PhoneNumberANDMail
             {
                 connection = _poolSQLite.ConnectionOpen();
 
-                string command = "CREATE IF NOT EXISTS IX_ContactUserBD_IndexPhoneMail ON RegisterBase(Login)";
+                string command = "CREATE INDEX IF NOT EXISTS IX_ContactUserBD_IndexPhoneMail ON RegisterBase(Login)";
 
                 await using (SQLiteCommand sqlcommand = new SQLiteCommand(command, connection))
                 {
@@ -144,9 +144,9 @@ namespace Messangers.SQLite.PhoneNumberANDMail
 
                 string command = "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'IX_ContactUserBD_IndexPhoneMail' AND tbl_name = 'RegisterBase'";
 
-                await using (SQLiteCommand sqlcommand = new SQLiteCommand())
+                await using (SQLiteCommand sqlcommand = new SQLiteCommand(command, connection))
                 {
-                    var res = sqlcommand.ExecuteScalarAsync().ConfigureAwait(false);
+                    var res = await sqlcommand.ExecuteScalarAsync().ConfigureAwait(false);
                     bool exec = Convert.ToInt32(res) == 1;
                     if (exec)
                         return true;
