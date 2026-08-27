@@ -8,24 +8,28 @@ namespace MessangersUI.PasswordChange
 {
     public interface Mail
     {
-        Task SendMail(string email);
+        Task SendMail(string code,string email);
     }
 
     public class SendYandex() : Mail
     {
-        public async Task SendMail(string email)
+        public async Task SendMail(string code, string email)
         {
             SendToYandexMail sendToYandexMail = new SendToYandexMail();
-            await sendToYandexMail.TypeMail(email).ConfigureAwait(false);
+
+            UseStrategy useStrategy = new UseStrategy(sendToYandexMail);
+            await useStrategy.SendToMail(code, email).ConfigureAwait(false);
         }
     }
 
     public class SendGoogle() : Mail
     {
-        public async Task SendMail(string email)
+        public async Task SendMail(string code, string email)
         {
             SendToGoogleMail sendToGoogleMail = new SendToGoogleMail();
-            await sendToGoogleMail.TypeMail(email).ConfigureAwait(false);
+
+            UseStrategy useStrategy = new UseStrategy(sendToGoogleMail);
+            await useStrategy.SendToMail(code, email).ConfigureAwait(false);
         }
     }
 
@@ -36,7 +40,7 @@ namespace MessangersUI.PasswordChange
             return type.ToLower() switch
             {
                 "gmail.com" => new SendGoogle(),
-                "yandex.com" => new SendYandex(),
+                "yandex.ru" => new SendYandex(),
                 _ => throw new ArgumentException("Неизвестный тип")
             };
         }

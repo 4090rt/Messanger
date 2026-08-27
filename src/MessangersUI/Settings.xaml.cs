@@ -1,5 +1,9 @@
 ﻿using MessangersUI.DataModel;
+using MessangersUI.GenerateCode;
+using MessangersUI.HttpPutR.UpdatePassword;
 using MessangersUI.HttpReuest.PostRequestAvatar;
+using MessangersUI.HttpReuest.PostRequestNumberEmail;
+using MessangersUI.PasswordChange;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -28,8 +32,14 @@ namespace MessangersUI
         private readonly string _username;
         private RequestAvatarUsing _avatarUsing;
         private MainWindow _mainWindow;
+        GiveMailNumber _GiveMailNumber;
+        private readonly UPDATEPassword _uPDATEPassword;
 
-        public Settings(PostMethodAvatar postMethodAvatar, string username, RequestAvatarUsing avatarUsing, MainWindow mainWindow)
+        static string EMailT = "";
+        static string code = "";
+
+        public Settings(PostMethodAvatar postMethodAvatar, string username, RequestAvatarUsing avatarUsing, 
+            MainWindow mainWindow, GiveMailNumber giveMailNumber, UPDATEPassword uPDATEPassword)
         {
             InitializeComponent();
 
@@ -38,12 +48,14 @@ namespace MessangersUI
             _username = username;
             _avatarUsing = avatarUsing;
             _mainWindow = mainWindow;
+            _GiveMailNumber = giveMailNumber;
 
 
             UsernameText.Content = _username;
             this.Loaded += async (s, e) =>
             {
                 await GiveImageAcatar();
+                await GiveEmailAndNumber();
             };
         }
 
@@ -53,10 +65,42 @@ namespace MessangersUI
             {
                 if (string.IsNullOrEmpty(_username))
                     return;
+
+                MailNumberStrcuct mailNumberStrcuctresult = await _GiveMailNumber.CacheRequestGive(_username).ConfigureAwait(false);
+
+                await Dispatcher.InvokeAsync( () =>
+                {
+                    if (string.IsNullOrEmpty(mailNumberStrcuctresult.Mail) && string.IsNullOrEmpty(mailNumberStrcuctresult.Phone))
+                    {
+                        PhoneTextBox.Content = "-";
+                        MailText.Content = "-";
+                    }
+                    else
+                    {
+                        if (string.IsNullOrEmpty(mailNumberStrcuctresult.Mail))
+                        {
+                            PhoneTextBox.Content = mailNumberStrcuctresult.Phone;
+                            MailText.Content = "-";
+                        }
+                        else if (string.IsNullOrEmpty(mailNumberStrcuctresult.Phone))
+                        {
+                            PhoneTextBox.Content = "-";
+                            MailText.Content = mailNumberStrcuctresult.Mail;
+                            EMailT = mailNumberStrcuctresult.Mail;
+                        }
+                        else
+                        {
+                            PhoneTextBox.Content = mailNumberStrcuctresult.Phone;
+                            MailText.Content = mailNumberStrcuctresult.Mail;
+                            EMailT = mailNumberStrcuctresult.Mail;
+                        }
+                    }
+                });
+               
             }
             catch(Exception ex) 
             {
-                
+                Debug.WriteLine($"Возникло исключение при попытку отобразить телефон и почту {ex.Message}");
             }
         }
 
@@ -151,6 +195,52 @@ namespace MessangersUI
         {
             _mainWindow.Show();
             this.Close();
+        }
+
+        private async Task Button_Click_1(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string codetext = CodeBox.Text ?? string.Empty;
+
+                if (codetext == code)
+                {
+
+                }
+                else
+                {
+                    System.Windows.MessageBox.Show("Неверный код");
+                    return;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Возникло исключение при смене пароля {ex.Message}");
+            }
+        }
+
+        private void ButtonPassword_Click_1(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrEmpty(EMailT))
+            {
+                System.Windows.MessageBox.Show("Укажите почту");
+                return;
+            }
+
+            string chars = EMailT;
+
+            int mail = chars.IndexOf('@');
+            string mailfull = mail >= 0 ? chars.Substring(mail + 1) : string.Empty;
+            System.Windows.MessageBox.Show(mailfull);
+
+            var mailmethod = FabricClass.SendVariants(mailfull);
+
+            code = Generate.GenerateC();
+
+            mailmethod.SendMail(code, chars);
+
+            ButtonPassword.Visibility = Visibility.Collapsed;
+            VerificationPanel.Visibility = Visibility.Visible;
         }
     }
 }

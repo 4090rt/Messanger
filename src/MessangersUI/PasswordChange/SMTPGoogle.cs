@@ -19,7 +19,7 @@ namespace MessangersUI.PasswordChange
                 int smtpport = 587;
 
                 string username = "artem2007yannurow@gmail.com";
-                string password = "";
+                string password = "bedi clrl njit wlmh";
 
                 var message = new MimeMessage();
 

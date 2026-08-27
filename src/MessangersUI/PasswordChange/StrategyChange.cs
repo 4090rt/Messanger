@@ -9,24 +9,24 @@ namespace MessangersUI.PasswordChange
 {
     public interface MailStrategy
     {
-        Task TypeMail(string Email);
+        Task TypeMail(string code, string Email);
     }
 
     public class SendToGoogleMail() : MailStrategy
     {
-        public async Task TypeMail(string Email)
+        public async Task TypeMail(string code, string Email)
         { 
             SMTPGoogle sMTPGoogle = new SMTPGoogle();
-            await sMTPGoogle.Send(Generate.GenerateC(), Email);
+            await sMTPGoogle.Send(code, Email);
         }
     }
 
     public class SendToYandexMail() : MailStrategy
     {
-        public async Task TypeMail(string Email)
+        public async Task TypeMail(string code,string Email)
         {
             SMTPYandex smtpGoogle = new SMTPYandex();
-            await smtpGoogle.Send(Generate.GenerateC(),Email);
+            await smtpGoogle.Send(code,Email);
         }
     }
 
@@ -44,9 +44,9 @@ namespace MessangersUI.PasswordChange
             _strategy = mailStrategy;
         }
 
-        public async Task SendToMail(string Email)
+        public async Task SendToMail(string code, string Email)
         {
-            await _strategy.TypeMail(Email).ConfigureAwait(false);
+            await _strategy.TypeMail(code, Email).ConfigureAwait(false);
         }
     }
 }

@@ -67,7 +67,7 @@ namespace MessangersUI.HttpReuest.PostRequestNumberEmail
 
                 var fallback = Policy<MailNumberStrcuct>
                     .Handle<Exception>()
-                    .OrResult(r => string.IsNullOrEmpty(r.Phone) || string.IsNullOrEmpty(r.Phone))
+                    .OrResult(r => string.IsNullOrEmpty(r.Phone) || string.IsNullOrEmpty(r.Mail))
                     .FallbackAsync(
                     fallbackAction: async (outcome, context, ctx) =>
                     {
@@ -103,7 +103,7 @@ namespace MessangersUI.HttpReuest.PostRequestNumberEmail
                 {
                     MailNumberStrcuct mailNumberStrcuct = await RequestGive(username).ConfigureAwait(false);
 
-                    if (string.IsNullOrEmpty(oldcache.Phone) && string.IsNullOrEmpty(oldcache.Mail))
+                    if (string.IsNullOrEmpty(mailNumberStrcuct.Phone) && string.IsNullOrEmpty(mailNumberStrcuct.Mail))
                         return default;
 
                     var memoryoptions = new MemoryCacheEntryOptions()
@@ -125,6 +125,7 @@ namespace MessangersUI.HttpReuest.PostRequestNumberEmail
             }
             catch (Exception ex)
             {
+
                 await _exceptionDelegate.RunDelegate(_exceptionDelegate.DelegateException, ex);
                 return new MailNumberStrcuct();
             }
@@ -160,7 +161,7 @@ namespace MessangersUI.HttpReuest.PostRequestNumberEmail
                         var jsondoc = JsonDocument.Parse(readOnlyMemorybytes);
                         var root = jsondoc.RootElement;
 
-                        if (root.TryGetProperty("Mail", out var mail) && root.TryGetProperty("Phone", out var number))
+                        if (root.TryGetProperty("mail", out var mail) && root.TryGetProperty("phone", out var number))
                         {
                             var mailadress = mail.GetString() ?? string.Empty;
                             var phonenumber = number.GetString() ?? string.Empty;
@@ -170,8 +171,7 @@ namespace MessangersUI.HttpReuest.PostRequestNumberEmail
                                 Mail = mailadress,
                                 Phone = phonenumber
                             };
-
-                            return mailNumberStrcuct;
+;                            return mailNumberStrcuct;
                         }
                         else
                         { 

@@ -17,7 +17,7 @@ namespace MessangersUI.PasswordChange
                 int port = 465;
 
                 string username = "yannuroff.a@yandex.ru";
-                string password = "";
+                string password = "vfbpksthqohxxgze";
 
                 var message = new MimeMessage();
 
